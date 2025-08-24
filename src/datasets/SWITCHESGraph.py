@@ -1,11 +1,12 @@
 import os
+import pathlib
 
 from torch_geometric.data import Data, Dataset, InMemoryDataset
 import torch
 from torch_geometric.transforms import Compose
 
 from src.datasets.transforms import key_to_transform, compose_transforms
-from ..crn.crn import CRN
+from src.crn.crn import CRN
 import pandas as pd
 from tqdm import tqdm
 import numpy as np
@@ -114,12 +115,9 @@ class SWITCHESGraphDataModule(AbstractDataModule):
         root_path = os.path.join(base_path, self.datadir)
 
 
-        datasets = {'train': SpectreGraphDataset(dataset_name=self.cfg.dataset.name,
-                                                 split='train', root=root_path),
-                    'val': SpectreGraphDataset(dataset_name=self.cfg.dataset.name,
-                                               split='val', root=root_path),
-                    'test': SpectreGraphDataset(dataset_name=self.cfg.dataset.name,
-                                                split='test', root=root_path)}
+        datasets = {'train': SWITCHESGraph(split='train', pre_transform=['type'], root=root_path),
+                    'val': SWITCHESGraph(split='val', pre_transform=['type'], root=root_path),
+                    'test': SWITCHESGraph(split='test', pre_transform=['type'], root=root_path)}
         # print(f'Dataset sizes: train {train_len}, val {val_len}, test {test_len}')
 
         super().__init__(cfg, datasets)
@@ -129,12 +127,12 @@ class SWITCHESGraphDataModule(AbstractDataModule):
         return self.inner[item]
 
 
-class SDatasetInfos(AbstractDatasetInfos):
+class SWITCHESDatasetInfos(AbstractDatasetInfos):
     def __init__(self, datamodule, dataset_config):
         self.datamodule = datamodule
-        self.name = 'nx_graphs'
+        self.name = 'SWITCHES'
         self.n_nodes = self.datamodule.node_counts()
-        self.node_types = torch.tensor([1])               # There are no node types
+        self.node_types = torch.tensor([0, 1])               # There are no node types
         self.edge_types = self.datamodule.edge_counts()
         super().complete_infos(self.n_nodes, self.node_types)
 

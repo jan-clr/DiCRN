@@ -540,6 +540,13 @@ def eval_acc_planar_graph(G_list):
             count += 1
     return count / float(len(G_list))
 
+def eval_acc_switches_graph(G_list):
+    count = 0
+    for gg in G_list:
+        if nx.is_bipartite(gg):
+            count += 1
+    return count / float(len(G_list))
+
 
 def is_planar_graph(G):
     return nx.is_connected(G) and nx.check_planarity(G)[0]
@@ -840,11 +847,26 @@ class SpectreSamplingMetrics(nn.Module):
             if wandb.run:
                 wandb.run.summary['planar_acc'] = planar_acc
 
-        if 'sbm' or 'planar' in self.metrics_list:
+        if 'switches' in self.metrics_list:
+            if local_rank ==0:
+                print('Computing switches accuracy...')
+            switches_acc = eval_acc_switches_graph(networkx_graphs)
+            to_log['switches_acc'] = switches_acc
+            if wandb.run:
+                wandb.run.summary['switches_acc'] = switches_acc
+
+        if 'sbm' or 'planar' or 'switches' in self.metrics_list:
             if local_rank == 0:
                 print("Computing all fractions...")
+            validity_func = None
+            if 'sbm' in self.metrics_list:
+                validity_func = lambda x: is_sbm_graph(x, strict=False, refinement_steps=100)
+            elif 'planar' in self.metrics_list:
+                validity_func = is_planar_graph
+            elif 'switches' in self.metrics_list:
+                validity_func = nx.is_bipartite
             frac_unique, frac_unique_non_isomorphic, fraction_unique_non_isomorphic_valid = eval_fraction_unique_non_isomorphic_valid(
-                networkx_graphs, self.train_graphs, is_sbm_graph if 'sbm' in self.metrics_list else is_planar_graph)
+                networkx_graphs, self.train_graphs, validity_func)
             frac_non_isomorphic = 1.0 - eval_fraction_isomorphic(networkx_graphs, self.train_graphs)
             to_log.update({'sampling/frac_unique': frac_unique,
                            'sampling/frac_unique_non_iso': frac_unique_non_isomorphic,
@@ -879,3 +901,10 @@ class SBMSamplingMetrics(SpectreSamplingMetrics):
         super().__init__(datamodule=datamodule,
                          compute_emd=False,
                          metrics_list=['degree', 'clustering', 'orbit', 'spectre', 'sbm'])
+
+
+class SWITCHESSamplingMetrics(SpectreSamplingMetrics):
+    def __init__(self, datamodule):
+        super().__init__(datamodule=datamodule,
+                         compute_emd=False,
+                         metrics_list=['degree', 'clustering', 'spectre', 'switches'])
