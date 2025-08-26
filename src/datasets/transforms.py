@@ -78,6 +78,18 @@ def node_type_feature(graph: Data, replace=False):
     return graph
 
 
+def node_type_one_hot_feature(graph: Data, replace=False):
+    """
+    Adds the node type as a feature to the graph. The node type is either a species or a reaction. The first nr_species nodes are species nodes and the rest are reaction nodes.
+    :param graph: The graph data object in torch_geometric format.
+    :param replace: If True, replaces the existing node features with this feature. Otherwise, appends it to the existing features.
+    :return:
+    """
+    features = torch.tensor([[[1, 0] if i < graph.num_species else [0, 1]] for i in range(graph.num_nodes)], dtype=torch.float).squeeze()
+    graph.x = features if graph.x is None or replace else torch.cat((graph.x, features), dim=1)
+    return graph
+
+
 def no_edge_feature(graph: Data):
     """
     Removes the edge features from the graph.
@@ -85,6 +97,27 @@ def no_edge_feature(graph: Data):
     :return:
     """
     graph.edge_attr = None
+    return graph
+
+
+def edge_one_hot_feature(graph: Data, num_edge_types=3):
+    """
+    Converts the edge features to one-hot encoding.
+    :param graph: The graph data object in torch_geometric format.
+    :param num_edge_types: The number of different edge types.
+    :return:
+    """
+    if graph.edge_attr is None:
+        raise ValueError("Graph has no edge features.")
+    edge_types = graph.edge_attr
+    edge_types[edge_types == 4] = 3
+    edge_types -= 1  # Make sure edge types are in [0, num_edge_types-1]
+    if torch.any(edge_types < 0) or torch.any(edge_types >= num_edge_types):
+        raise ValueError(f"Edge types must be in [0, {num_edge_types-1}]. Found edge types in [{edge_types.min().item()}, {edge_types.max().item()}].")
+    graph.edge_attr = torch.nn.functional.one_hot(edge_types.squeeze().long(), num_classes=num_edge_types).to(torch.float)
+    # Prepend a column of zeros to represent no edge
+    no_edge = torch.zeros((graph.edge_attr.shape[0], 1), dtype=torch.float)
+    graph.edge_attr = torch.cat((no_edge, graph.edge_attr), dim=1)
     return graph
 
 
@@ -124,8 +157,12 @@ def key_to_transform(key):
         return T.line_graph.LineGraph()
     elif key == "type":
         return node_type_feature
+    elif key == "type_one_hot":
+        return node_type_one_hot_feature
     elif key == "no_edge":
         return no_edge_feature
+    elif key == "edge_one_hot":
+        return edge_one_hot_feature
     elif key == "pagerank":
         return pagerank_feature
     elif key == "ldp":

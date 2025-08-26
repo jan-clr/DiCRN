@@ -115,9 +115,9 @@ class SWITCHESGraphDataModule(AbstractDataModule):
         root_path = os.path.join(base_path, self.datadir)
 
 
-        datasets = {'train': SWITCHESGraph(split='train', pre_transform=['type'], root=root_path),
-                    'val': SWITCHESGraph(split='val', pre_transform=['type'], root=root_path),
-                    'test': SWITCHESGraph(split='test', pre_transform=['type'], root=root_path)}
+        datasets = {'train': SWITCHESGraph(split='train', pre_transform=['type_one_hot', 'edge_one_hot'], root=root_path),
+                    'val': SWITCHESGraph(split='val', pre_transform=['type_one_hot', 'edge_one_hot'], root=root_path),
+                    'test': SWITCHESGraph(split='test', pre_transform=['type_one_hot', 'edge_one_hot'], root=root_path)}
         # print(f'Dataset sizes: train {train_len}, val {val_len}, test {test_len}')
 
         super().__init__(cfg, datasets)
@@ -134,6 +134,7 @@ class SWITCHESDatasetInfos(AbstractDatasetInfos):
         self.n_nodes = self.datamodule.node_counts()
         self.node_types = torch.tensor([0, 1])               # There are no node types
         self.edge_types = self.datamodule.edge_counts()
+        self.is_directed = True
         super().complete_infos(self.n_nodes, self.node_types)
 
 

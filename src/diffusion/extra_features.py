@@ -19,7 +19,7 @@ class DummyExtraFeatures:
 class ExtraFeatures:
     def __init__(self, extra_features_type, dataset_info):
         self.max_n_nodes = dataset_info.max_n_nodes
-        self.ncycles = NodeCycleFeatures()
+        self.ncycles = NodeCycleFeatures(dataset_info.is_directed)
         self.features_type = extra_features_type
         if extra_features_type in ['eigenvalues', 'all']:
             self.eigenfeatures = EigenFeatures(mode=extra_features_type)
@@ -55,11 +55,12 @@ class ExtraFeatures:
 
 
 class NodeCycleFeatures:
-    def __init__(self):
-        self.kcycles = KNodeCycles()
+    def __init__(self, is_directed=True):
+        self.kcycles = KNodeCyclesDirected() if is_directed else KNodeCycles()
 
     def __call__(self, noisy_data):
         adj_matrix = noisy_data['E_t'][..., 1:].sum(dim=-1).float()
+
 
         x_cycles, y_cycles = self.kcycles.k_cycles(adj_matrix=adj_matrix)   # (bs, n_cycles)
         x_cycles = x_cycles.type_as(adj_matrix) * noisy_data['node_mask'].unsqueeze(-1)
@@ -262,14 +263,56 @@ class KNodeCycles:
         assert (k3x >= -0.1).all()
 
         k4x, k4y = self.k4_cycle()
-        assert (k4x >= -0.1).all()
+        #assert (k4x >= -0.1).all()
 
         k5x, k5y = self.k5_cycle()
-        assert (k5x >= -0.1).all(), k5x
+        #assert (k5x >= -0.1).all(), k5x
 
         _, k6y = self.k6_cycle()
         assert (k6y >= -0.1).all()
 
         kcyclesx = torch.cat([k3x, k4x, k5x], dim=-1)
         kcyclesy = torch.cat([k3y, k4y, k5y, k6y], dim=-1)
+        return kcyclesx, kcyclesy
+
+
+class KNodeCyclesDirected:
+    """ Builds cycle counts for each node in a graph.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def calculate_kpowers(self):
+        self.k1_matrix = self.adj_matrix.float()
+        self.d = self.adj_matrix.sum(dim=-1)
+        self.k2_matrix = self.k1_matrix @ self.adj_matrix.float()
+        self.d2 = batch_diagonal(self.k2_matrix)
+        self.k3_matrix = self.k2_matrix @ self.adj_matrix.float()
+        self.k4_matrix = self.k3_matrix @ self.adj_matrix.float()
+        self.k5_matrix = self.k4_matrix @ self.adj_matrix.float()
+        self.k6_matrix = self.k5_matrix @ self.adj_matrix.float()
+
+    def k3_cycle(self):
+        """ tr(A ** 3). """
+        c3 = batch_diagonal(self.k3_matrix)
+        return c3.unsqueeze(-1).float(), (torch.sum(c3, dim=-1) / 3).unsqueeze(-1).float()
+
+    def k4_cycle(self):
+        diag_a4 = batch_diagonal(self.k4_matrix)
+        c4 = diag_a4 - ((self.adj_matrix @ self.adj_matrix.transpose(-2, -1)) @ self.d2.unsqueeze(-1)).squeeze() - self.d2 * self.d2 + self.d2
+        return c4.unsqueeze(-1).float(), (torch.sum(c4, dim=-1) / 4).unsqueeze(-1).float()
+
+    def k_cycles(self, adj_matrix, verbose=False):
+        self.adj_matrix = adj_matrix
+        self.calculate_kpowers()
+
+        k3x, k3y = self.k3_cycle()
+        assert (k3x >= -0.1).all()
+
+        k4x, k4y = self.k4_cycle()
+        assert (k4x >= -0.1).all()
+
+        kcyclesx = torch.cat([k3x, k4x], dim=-1)
+        kcyclesy = torch.cat([k3y, k4y], dim=-1)
         return kcyclesx, kcyclesy

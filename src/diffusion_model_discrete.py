@@ -19,6 +19,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
     def __init__(self, cfg, dataset_infos, train_metrics, sampling_metrics, visualization_tools, extra_features,
                  domain_features):
         super().__init__()
+        print("Init called")
 
         input_dims = dataset_infos.input_dims
         output_dims = dataset_infos.output_dims
@@ -124,6 +125,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                                  weight_decay=self.cfg.train.weight_decay)
 
     def on_fit_start(self) -> None:
+        print("Fit started reached")
         self.train_iterations = len(self.trainer.datamodule.train_dataloader())
         self.print("Size of the input features", self.Xdim, self.Edim, self.ydim)
         if self.local_rank == 0:
@@ -515,7 +517,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         z_T = diffusion_utils.sample_discrete_feature_noise(limit_dist=self.limit_dist, node_mask=node_mask)
         X, E, y = z_T.X, z_T.E, z_T.y
 
-        assert (E == torch.transpose(E, 1, 2)).all()
+        # Remove for undirected graphs
+        #assert (E == torch.transpose(E, 1, 2)).all()
         assert number_chain_steps < self.T
         chain_X_size = torch.Size((number_chain_steps, keep_chain, X.size(1)))
         chain_E_size = torch.Size((number_chain_steps, keep_chain, E.size(1), E.size(2)))
@@ -582,7 +585,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                     _ = self.visualization_tools.visualize_chain(result_path,
                                                                  chain_X[:, i, :].numpy(),
                                                                  chain_E[:, i, :].numpy())
-                self.print('\r{}/{} complete'.format(i+1, num_molecules), end='', flush=True)
+                self.print('\r{}/{} complete'.format(i+1, num_molecules), end='')
             self.print('\nVisualizing molecules...')
 
             # Visualize the final molecules

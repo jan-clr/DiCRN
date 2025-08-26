@@ -224,6 +224,7 @@ class QM9infos(AbstractDatasetInfos):
         self.need_to_strip = False        # to indicate whether we need to ignore one output from the model
 
         self.name = 'qm9'
+        self.is_directed = False
         if self.remove_h:
             self.atom_encoder = {'C': 0, 'N': 1, 'O': 2, 'F': 3}
             self.atom_decoder = ['C', 'N', 'O', 'F']

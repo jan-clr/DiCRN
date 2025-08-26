@@ -127,7 +127,8 @@ class PlaceHolder:
         else:
             self.X = self.X * x_mask
             self.E = self.E * e_mask1 * e_mask2
-            assert torch.allclose(self.E, torch.transpose(self.E, 1, 2))
+            # This assert only makes sense for undirected graphs
+            #assert torch.allclose(self.E, torch.transpose(self.E, 1, 2))
         return self
 
 

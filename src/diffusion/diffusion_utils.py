@@ -194,15 +194,17 @@ def sample_feature_noise(X_size, E_size, y_size, node_mask):
     epsE = epsE.type_as(float_mask)
     epsy = epsy.type_as(float_mask)
 
+    # Only for undirected graphs
+
     # Get upper triangular part of edge noise, without main diagonal
-    upper_triangular_mask = torch.zeros_like(epsE)
-    indices = torch.triu_indices(row=epsE.size(1), col=epsE.size(2), offset=1)
-    upper_triangular_mask[:, indices[0], indices[1], :] = 1
+    #upper_triangular_mask = torch.zeros_like(epsE)
+    #indices = torch.triu_indices(row=epsE.size(1), col=epsE.size(2), offset=1)
+    #upper_triangular_mask[:, indices[0], indices[1], :] = 1
 
-    epsE = epsE * upper_triangular_mask
-    epsE = (epsE + torch.transpose(epsE, 1, 2))
+    #epsE = epsE * upper_triangular_mask
+    #epsE = (epsE + torch.transpose(epsE, 1, 2))
 
-    assert (epsE == torch.transpose(epsE, 1, 2)).all()
+    #assert (epsE == torch.transpose(epsE, 1, 2)).all()
 
     return PlaceHolder(X=epsX, E=epsE, y=epsy).mask(node_mask)
 
@@ -381,15 +383,17 @@ def sample_discrete_feature_noise(limit_dist, node_mask):
     U_X = F.one_hot(U_X, num_classes=x_limit.shape[-1]).float()
     U_E = F.one_hot(U_E, num_classes=e_limit.shape[-1]).float()
 
+    # This part is only for undirected graphs
+
     # Get upper triangular part of edge noise, without main diagonal
-    upper_triangular_mask = torch.zeros_like(U_E)
-    indices = torch.triu_indices(row=U_E.size(1), col=U_E.size(2), offset=1)
-    upper_triangular_mask[:, indices[0], indices[1], :] = 1
+    #upper_triangular_mask = torch.zeros_like(U_E)
+    #indices = torch.triu_indices(row=U_E.size(1), col=U_E.size(2), offset=1)
+    #upper_triangular_mask[:, indices[0], indices[1], :] = 1
 
-    U_E = U_E * upper_triangular_mask
-    U_E = (U_E + torch.transpose(U_E, 1, 2))
+    #U_E = U_E * upper_triangular_mask
+    #U_E = (U_E + torch.transpose(U_E, 1, 2))
 
-    assert (U_E == torch.transpose(U_E, 1, 2)).all()
+    #assert (U_E == torch.transpose(U_E, 1, 2)).all()
 
     return PlaceHolder(X=U_X, E=U_E, y=U_y).mask(node_mask)
 
