@@ -4,7 +4,7 @@
 
 # Prepare the environment
 module load cuda/11.8.0
-module load python/conda-3.12
+module load python/3.12-conda
 
 cd src || exit 1
 conda activate digress
