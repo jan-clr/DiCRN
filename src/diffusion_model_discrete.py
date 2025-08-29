@@ -264,7 +264,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         id = 0
         while samples_left_to_generate > 0:
             self.print(f'Samples left to generate: {samples_left_to_generate}/'
-                       f'{self.cfg.general.final_model_samples_to_generate}', end='', flush=True)
+                       f'{self.cfg.general.final_model_samples_to_generate}', end='')
             bs = 2 * self.cfg.train.batch_size
             to_generate = min(samples_left_to_generate, bs)
             to_save = min(samples_left_to_save, bs)
@@ -504,6 +504,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         :param keep_chain_steps: number of timesteps to save for each chain
         :return: molecule_list. Each element of this list is a tuple (atom_types, charges, positions)
         """
+        print(f"Sampling batch {batch_id} with batch size {batch_size}...")
         if num_nodes is None:
             n_nodes = self.node_dist.sample_n(batch_size, self.device)
         elif type(num_nodes) == int:
@@ -573,6 +574,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             edge_types = E[i, :n, :n].cpu()
             molecule_list.append([atom_types, edge_types])
 
+        print(f"Visualization tools: {self.visualization_tools}")
         # Visualize chains
         if self.visualization_tools is not None:
             self.print('Visualizing chains...')
