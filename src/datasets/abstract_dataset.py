@@ -106,14 +106,24 @@ class AbstractDatasetInfos:
                                              example_batch.batch)
         example_data = {'X_t': ex_dense.X, 'E_t': ex_dense.E, 'y_t': example_batch['y'], 'node_mask': node_mask}
 
-        y_size = example_batch['y'].size(0) if len(example_batch['y'].size()) == 1 else example_batch['y'].size(1)
+        print(datamodule.cfg.general.guidance_target)
+        if len(example_batch['y'].size()) == 1:
+            if datamodule.cfg.general.guidance_target is None:
+                y_size = 0
+            else:
+                y_size = 1
+        else:
+            y_size = example_batch['y'].size(1)
+
         self.input_dims = {'X': example_batch['x'].size(1),
                            'E': example_batch['edge_attr'].size(1),
                            'y': y_size + 1}      # + 1 due to time conditioning
+        print(self.input_dims['y'])
         ex_extra_feat = extra_features(example_data)
         self.input_dims['X'] += ex_extra_feat.X.size(-1)
         self.input_dims['E'] += ex_extra_feat.E.size(-1)
         self.input_dims['y'] += ex_extra_feat.y.size(-1)
+        print(self.input_dims['y'])
 
         ex_extra_molecular_feat = domain_features(example_data)
         self.input_dims['X'] += ex_extra_molecular_feat.X.size(-1)

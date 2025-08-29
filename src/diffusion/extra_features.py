@@ -290,8 +290,6 @@ class KNodeCyclesDirected:
         self.d2 = batch_diagonal(self.k2_matrix)
         self.k3_matrix = self.k2_matrix @ self.adj_matrix.float()
         self.k4_matrix = self.k3_matrix @ self.adj_matrix.float()
-        self.k5_matrix = self.k4_matrix @ self.adj_matrix.float()
-        self.k6_matrix = self.k5_matrix @ self.adj_matrix.float()
 
     def k3_cycle(self):
         """ tr(A ** 3). """
@@ -300,7 +298,11 @@ class KNodeCyclesDirected:
 
     def k4_cycle(self):
         diag_a4 = batch_diagonal(self.k4_matrix)
-        c4 = diag_a4 - ((self.adj_matrix @ self.adj_matrix.transpose(-2, -1)) @ self.d2.unsqueeze(-1)).squeeze() - self.d2 * self.d2 + self.d2
+        adj_bar = self.adj_matrix * self.adj_matrix.transpose(-2, -1)
+        adj_bar2 = adj_bar @ adj_bar
+        diag_abar2 = batch_diagonal(adj_bar2)
+
+        c4 = diag_a4 - (diag_abar2 ** 2 - diag_abar2 + (adj_bar @ diag_abar2.unsqueeze(-1)).squeeze())
         return c4.unsqueeze(-1).float(), (torch.sum(c4, dim=-1) / 4).unsqueeze(-1).float()
 
     def k_cycles(self, adj_matrix, verbose=False):

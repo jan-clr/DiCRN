@@ -19,7 +19,6 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
     def __init__(self, cfg, dataset_infos, train_metrics, sampling_metrics, visualization_tools, extra_features,
                  domain_features):
         super().__init__()
-        print("Init called")
 
         input_dims = dataset_infos.input_dims
         output_dims = dataset_infos.output_dims
@@ -92,7 +91,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             self.limit_dist = utils.PlaceHolder(X=x_marginals, E=e_marginals,
                                                 y=torch.ones(self.ydim_output) / self.ydim_output)
 
-        self.save_hyperparameters(ignore=['train_metrics', 'sampling_metrics'])
+        self.save_hyperparameters(ignore=['train_metrics', 'sampling_metrics', 'dataset_infos'])
         self.start_epoch_time = None
         self.train_iterations = None
         self.val_iterations = None
@@ -487,7 +486,10 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
     def forward(self, noisy_data, extra_data, node_mask):
         X = torch.cat((noisy_data['X_t'], extra_data.X), dim=2).float()
         E = torch.cat((noisy_data['E_t'], extra_data.E), dim=3).float()
-        y = torch.hstack((noisy_data['y_t'], extra_data.y)).float()
+        if len(noisy_data['y_t'].shape) == 1:
+            y = torch.hstack((noisy_data['y_t'].unsqueeze(-1), extra_data.y)).float()
+        else:
+            y = torch.hstack((noisy_data['y_t'], extra_data.y)).float()
         return self.model(X, E, y, node_mask)
 
     @torch.no_grad()

@@ -5,6 +5,7 @@ from torch_geometric.data import Data, Dataset, InMemoryDataset
 import torch
 from torch_geometric.transforms import Compose
 
+from src.datasets import transforms
 from src.datasets.transforms import key_to_transform, compose_transforms
 from src.crn.crn import CRN
 import pandas as pd
@@ -114,9 +115,10 @@ class SWITCHESGraphDataModule(AbstractDataModule):
         base_path = pathlib.Path(os.path.realpath(__file__)).parents[2]
         root_path = os.path.join(base_path, self.datadir)
 
+        transform = transforms.empty_target if cfg.general.guidance_target is None else None
 
-        datasets = {'train': SWITCHESGraph(split='train', pre_transform=['type_one_hot', 'edge_one_hot'], root=root_path),
-                    'val': SWITCHESGraph(split='val', pre_transform=['type_one_hot', 'edge_one_hot'], root=root_path),
+        datasets = {'train': SWITCHESGraph(split='train', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path),
+                    'val': SWITCHESGraph(split='val', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path),
                     'test': SWITCHESGraph(split='test', pre_transform=['type_one_hot', 'edge_one_hot'], root=root_path)}
         # print(f'Dataset sizes: train {train_len}, val {val_len}, test {test_len}')
 
@@ -132,7 +134,7 @@ class SWITCHESDatasetInfos(AbstractDatasetInfos):
         self.datamodule = datamodule
         self.name = 'SWITCHES'
         self.n_nodes = self.datamodule.node_counts()
-        self.node_types = torch.tensor([0, 1])               # There are no node types
+        self.node_types = self.datamodule.node_types()               # There are no node types
         self.edge_types = self.datamodule.edge_counts()
         self.is_directed = True
         super().complete_infos(self.n_nodes, self.node_types)

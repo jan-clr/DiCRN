@@ -146,6 +146,16 @@ def zero_feature(graph: Data):
     return graph
 
 
+def empty_target(graph: Data):
+    """
+    Removes the target content from the graph.
+    :param graph: The graph data object in torch_geometric format.
+    :return:
+    """
+    graph.y = torch.zeros((1, 0), dtype=torch.float)
+    return graph
+
+
 def key_to_transform(key):
     if key == "degree" or key == "total_degree":
         return total_degree_feature

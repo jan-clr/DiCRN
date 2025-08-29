@@ -18,7 +18,7 @@ class SpectreGraphDataset(InMemoryDataset):
         self.split = split
         self.num_graphs = 200
         super().__init__(root, transform, pre_transform, pre_filter)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_file_names(self):
@@ -132,5 +132,6 @@ class SpectreDatasetInfos(AbstractDatasetInfos):
         self.n_nodes = self.datamodule.node_counts()
         self.node_types = torch.tensor([1])               # There are no node types
         self.edge_types = self.datamodule.edge_counts()
+        self.is_directed = False
         super().complete_infos(self.n_nodes, self.node_types)
 
