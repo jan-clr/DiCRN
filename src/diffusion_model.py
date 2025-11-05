@@ -120,8 +120,6 @@ class LiftedDenoisingDiffusion(pl.LightningModule):
 
     def on_fit_start(self) -> None:
         self.train_iterations = len(self.trainer.datamodule.train_dataloader())
-        if self.local_rank == 0:
-            utils.setup_wandb(self.cfg)
 
     def on_train_epoch_start(self) -> None:
         self.start_epoch_time = time.time()
@@ -165,8 +163,7 @@ class LiftedDenoisingDiffusion(pl.LightningModule):
         metrics = [self.val_nll.compute(), self.val_X_mse.compute(), self.val_E_mse.compute(),
                    self.val_y_mse.compute(), self.val_X_logp.compute(), self.val_E_logp.compute(),
                    self.val_y_logp.compute()]
-        if wandb.run:
-            wandb.log({"val/epoch_NLL": metrics[0],
+        self.log_dict({"val/epoch_NLL": metrics[0],
                        "val/X_mse": metrics[1],
                        "val/E_mse": metrics[2],
                        "val/y_mse": metrics[3],

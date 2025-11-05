@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
 import time
-import wandb
 import os
 
 from models.transformer_model import GraphTransformer
@@ -169,12 +168,11 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
     def on_validation_epoch_end(self) -> None:
         metrics = [self.val_nll.compute(), self.val_X_kl.compute() * self.T, self.val_E_kl.compute() * self.T,
                    self.val_X_logp.compute(), self.val_E_logp.compute()]
-        if wandb.run:
-            wandb.log({"val/epoch_NLL": metrics[0],
+        self.log_dict({"val/epoch_NLL": metrics[0],
                        "val/X_kl": metrics[1],
                        "val/E_kl": metrics[2],
                        "val/X_logp": metrics[3],
-                       "val/E_logp": metrics[4]}, commit=False)
+                       "val/E_logp": metrics[4]})
 
         self.print(f"Epoch {self.current_epoch}: Val NLL {metrics[0] :.2f} -- Val Atom type KL {metrics[1] :.2f} -- ",
                    f"Val Edge type KL: {metrics[2] :.2f}")
@@ -240,19 +238,17 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         """ Measure likelihood on a test set and compute stability metrics. """
         metrics = [self.test_nll.compute(), self.test_X_kl.compute(), self.test_E_kl.compute(),
                    self.test_X_logp.compute(), self.test_E_logp.compute()]
-        if wandb.run:
-            wandb.log({"test/epoch_NLL": metrics[0],
+        self.log_dict({"test/epoch_NLL": metrics[0],
                        "test/X_kl": metrics[1],
                        "test/E_kl": metrics[2],
                        "test/X_logp": metrics[3],
-                       "test/E_logp": metrics[4]}, commit=False)
+                       "test/E_logp": metrics[4]})
 
         self.print(f"Epoch {self.current_epoch}: Test NLL {metrics[0] :.2f} -- Test Atom type KL {metrics[1] :.2f} -- ",
                    f"Test Edge type KL: {metrics[2] :.2f}")
 
         test_nll = metrics[0]
-        if wandb.run:
-            wandb.log({"test/epoch_NLL": test_nll}, commit=False)
+        self.log({"test/epoch_NLL": test_nll})
 
         self.print(f'Test loss: {test_nll :.4f}')
 
@@ -300,6 +296,47 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         self.sampling_metrics(samples, self.name, self.current_epoch, self.val_counter, test=True, local_rank=self.local_rank)
         self.print("Done testing.")
 
+    def generate_samples(self):
+        samples_left_to_generate = self.cfg.general.final_model_samples_to_generate
+        samples_left_to_save = self.cfg.general.final_model_samples_to_save
+        chains_left_to_save = self.cfg.general.final_model_chains_to_save
+
+        samples = []
+        id = 0
+        while samples_left_to_generate > 0:
+            print(f'Samples left to generate: {samples_left_to_generate}/'
+                       f'{self.cfg.general.final_model_samples_to_generate}', end='')
+            bs = 1 #2 * self.cfg.train.batch_size)
+            to_generate = min(samples_left_to_generate, bs)
+            to_save = min(samples_left_to_save, bs)
+            chains_save = min(chains_left_to_save, bs)
+            samples.extend(self.sample_batch(id, to_generate, num_nodes=None, save_final=to_save,
+                                             keep_chain=chains_save, number_chain_steps=self.number_chain_steps))
+            id += to_generate
+            samples_left_to_save -= to_save
+            samples_left_to_generate -= to_generate
+            chains_left_to_save -= chains_save
+        print("Saving the generated graphs")
+        filename = f'generated_samples1.txt'
+        for i in range(2, 10):
+            if os.path.exists(filename):
+                filename = f'generated_samples{i}.txt'
+            else:
+                break
+        with open(filename, 'w') as f:
+            for item in samples:
+                f.write(f"N={item[0].shape[0]}\n")
+                atoms = item[0].tolist()
+                f.write("X: \n")
+                for at in atoms:
+                    f.write(f"{at} ")
+                f.write("\n")
+                f.write("E: \n")
+                for bond_list in item[1]:
+                    for bond in bond_list:
+                        f.write(f"{bond} ")
+                    f.write("\n")
+                f.write("\n")
 
     def kl_prior(self, X, E, node_mask):
         """Computes the KL between q(z1 | x) and the prior p(z1) = Normal(0, 1).
@@ -475,12 +512,11 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         # Update NLL metric object and return batch nll
         nll = (self.test_nll if test else self.val_nll)(nlls)        # Average over the batch
 
-        if wandb.run:
-            wandb.log({"kl prior": kl_prior.mean(),
+        self.log_dict({"kl prior": kl_prior.mean(),
                        "Estimator loss terms": loss_all_t.mean(),
                        "log_pn": log_pN.mean(),
                        "loss_term_0": loss_term_0,
-                       'batch_test_nll' if test else 'val_nll': nll}, commit=False)
+                       'batch_test_nll' if test else 'val_nll': nll})
         return nll
 
     def forward(self, noisy_data, extra_data, node_mask):
@@ -577,7 +613,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         print(f"Visualization tools: {self.visualization_tools}")
         # Visualize chains
         if self.visualization_tools is not None:
-            self.print('Visualizing chains...')
+            #self.print('Visualizing chains...')
             current_path = os.getcwd()
             num_molecules = chain_X.size(1)       # number of molecules
             for i in range(num_molecules):
@@ -589,15 +625,15 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                     _ = self.visualization_tools.visualize_chain(result_path,
                                                                  chain_X[:, i, :].numpy(),
                                                                  chain_E[:, i, :].numpy())
-                self.print('\r{}/{} complete'.format(i+1, num_molecules), end='')
-            self.print('\nVisualizing molecules...')
+                #self.print('\r{}/{} complete'.format(i+1, num_molecules), end='')
+            #self.print('\nVisualizing molecules...')
 
             # Visualize the final molecules
             current_path = os.getcwd()
             result_path = os.path.join(current_path,
                                        f'graphs/{self.name}/epoch{self.current_epoch}_b{batch_id}/')
             self.visualization_tools.visualize(result_path, molecule_list, save_final)
-            self.print("Done.")
+            #self.print("Done.")
 
         return molecule_list
 

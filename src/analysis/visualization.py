@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 
 
 
-
 class MolecularVisualization:
     def __init__(self, remove_h, dataset_infos):
         self.remove_h = remove_h
@@ -219,3 +218,58 @@ class NonMolecularVisualization:
         imageio.mimsave(gif_path, imgs, subrectangles=True, duration=20)
         if wandb.run:
             wandb.log({'chain': [wandb.Video(gif_path, caption=gif_path, format="gif")]})
+
+
+class CRNVisualization(NonMolecularVisualization):
+    def to_networkx(self, node_list, adjacency_matrix):
+        """
+        Convert graphs to networkx graphs
+        node_list: the nodes of a batch of nodes (bs x n)
+        adjacency_matrix: the adjacency_matrix of the molecule (bs x n x n)
+        """
+        graph = nx.DiGraph()
+
+        for i in range(len(node_list)):
+            if node_list[i] == -1:
+                continue
+            graph.add_node(i, number=i, symbol=node_list[i], color_val=node_list[i], type=node_list[i])
+
+        rows, cols = np.where(adjacency_matrix >= 1)
+        edges = zip(rows.tolist(), cols.tolist())
+        for edge in edges:
+            edge_type = adjacency_matrix[edge[0]][edge[1]]
+            graph.add_edge(edge[0], edge[1], color=float(edge_type), weight=3 * edge_type, stoichiometry=edge_type)
+
+        return graph
+
+    def visualize_non_molecule(self, graph, pos, path, iterations=100, node_size=100, largest_component=False):
+        if largest_component:
+            CGs = [graph.subgraph(c) for c in nx.connected_components(graph)]
+            CGs = sorted(CGs, key=lambda x: x.number_of_nodes(), reverse=True)
+            graph = CGs[0]
+
+        top = [n for n, d in graph.nodes(data=True) if d.get('type') == 0]
+        pos = nx.bipartite_layout(graph, top, align='horizontal')
+        node_color = ["lightgreen" if d['type'] == 0 else "lightblue" for n, d in graph.nodes(data=True)]
+        plt.figure()
+        nx.draw(graph, pos, with_labels=True, node_size=100, node_color=node_color)
+        edge_labels = nx.get_edge_attributes(graph, "stoichiometry")
+        nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, font_color="red", font_size=5, font_weight="bold", label_pos=0.2)
+
+        plt.tight_layout()
+        plt.savefig(path)
+        plt.close("all")
+
+    def visualize(self, path: str, graphs: list, num_graphs_to_visualize: int, log='graph'):
+        # define path to save figures
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        # visualize the final molecules
+        for i in range(num_graphs_to_visualize):
+            file_path = os.path.join(path, 'graph_{}.png'.format(i))
+            graph = self.to_networkx(graphs[i][0].numpy(), graphs[i][1].numpy())
+            self.visualize_non_molecule(graph=graph, pos=None, path=file_path)
+            im = plt.imread(file_path)
+            if wandb.run and log is not None:
+                wandb.log({log: [wandb.Image(im, caption=file_path)]})

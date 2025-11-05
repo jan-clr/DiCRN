@@ -118,12 +118,10 @@ class AbstractDatasetInfos:
         self.input_dims = {'X': example_batch['x'].size(1),
                            'E': example_batch['edge_attr'].size(1),
                            'y': y_size + 1}      # + 1 due to time conditioning
-        print(self.input_dims['y'])
         ex_extra_feat = extra_features(example_data)
         self.input_dims['X'] += ex_extra_feat.X.size(-1)
         self.input_dims['E'] += ex_extra_feat.E.size(-1)
         self.input_dims['y'] += ex_extra_feat.y.size(-1)
-        print(self.input_dims['y'])
 
         ex_extra_molecular_feat = domain_features(example_data)
         self.input_dims['X'] += ex_extra_molecular_feat.X.size(-1)

@@ -4,12 +4,17 @@ import pathlib
 import warnings
 
 import torch
+from torch.utils.tensorboard import SummaryWriter
+
+from src.analysis.visualization import CRNVisualization
+
 torch.cuda.empty_cache()
 import hydra
 from omegaconf import DictConfig
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
+from pytorch_lightning.loggers import TensorBoardLogger
 
 from src import utils
 from metrics.abstract_metrics import TrainAbstractMetricsDiscrete, TrainAbstractMetrics
@@ -109,7 +114,7 @@ def main(cfg: DictConfig):
 
         dataset_infos = SWITCHESDatasetInfos(datamodule, dataset_config)
         train_metrics = TrainAbstractMetricsDiscrete() if cfg.model.type == 'discrete' else TrainAbstractMetrics()
-        visualization_tools = NonMolecularVisualization()
+        visualization_tools = CRNVisualization()
 
         if cfg.model.type == 'discrete' and cfg.model.extra_features is not None:
             extra_features = ExtraFeatures(cfg.model.extra_features, dataset_info=dataset_infos)
@@ -213,6 +218,8 @@ def main(cfg: DictConfig):
 
     use_gpu = cfg.general.gpus > 0 and torch.cuda.is_available()
     print("Using GPU:", use_gpu)
+
+    logger = TensorBoardLogger(cfg.general.log_dir, name=name)
     trainer = Trainer(gradient_clip_val=cfg.train.clip_grad,
                       strategy="ddp_find_unused_parameters_true",  # Needed to load old checkpoints
                       accelerator='gpu' if use_gpu else 'cpu',
@@ -223,7 +230,7 @@ def main(cfg: DictConfig):
                       enable_progress_bar=False,
                       callbacks=callbacks,
                       log_every_n_steps=50 if name != 'debug' else 1,
-                      logger = [])
+                      logger = logger)
 
     if not cfg.general.test_only:
         print("Training started for", name)
