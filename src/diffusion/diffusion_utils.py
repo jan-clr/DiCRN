@@ -262,8 +262,11 @@ def sample_discrete_features(probX, probE, node_mask):
 
     # Sample E
     E_t = probE.multinomial(1).reshape(bs, n, n)   # (bs, n, n)
-    E_t = torch.triu(E_t, diagonal=1)
-    E_t = (E_t + torch.transpose(E_t, 1, 2))
+    #E_t = torch.triu(E_t, diagonal=1)
+    #E_t = (E_t + torch.transpose(E_t, 1, 2))
+
+    # Set main diagonal to zero, since no self-loops
+    E_t[diag_mask.bool()] = 0
 
     return PlaceHolder(X=X_t, E=E_t, y=torch.zeros(bs, 0).type_as(X_t))
 
@@ -394,6 +397,10 @@ def sample_discrete_feature_noise(limit_dist, node_mask):
     #U_E = (U_E + torch.transpose(U_E, 1, 2))
 
     #assert (U_E == torch.transpose(U_E, 1, 2)).all()
+
+    # Set main diagonal to zero, since no self-loops TODO: check if this is working correctly
+    diag_mask = torch.eye(U_E.size(1), device=U_E.device, dtype=torch.bool).unsqueeze(0)
+    U_E[diag_mask] = 0
 
     return PlaceHolder(X=U_X, E=U_E, y=U_y).mask(node_mask)
 

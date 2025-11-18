@@ -43,7 +43,7 @@ def main(cfg: DictConfig):
     print("Using GPU:", use_gpu)
     utils.create_folders(cfg)
 
-    model = DiscreteDenoisingDiffusion.load_from_checkpoint(cfg.checkpoint, dataset_infos=dataset_infos, train_metrics=train_metrics, sampling_metrics=sampling_metrics, visualization_tools=visualization_tools)
+    model = DiscreteDenoisingDiffusion.load_from_checkpoint(cfg.checkpoint, cfg=cfg, dataset_infos=dataset_infos, train_metrics=train_metrics, sampling_metrics=sampling_metrics, visualization_tools=visualization_tools)
 
     model.generate_samples()
 

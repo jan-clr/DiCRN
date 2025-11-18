@@ -610,7 +610,6 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             edge_types = E[i, :n, :n].cpu()
             molecule_list.append([atom_types, edge_types])
 
-        print(f"Visualization tools: {self.visualization_tools}")
         # Visualize chains
         if self.visualization_tools is not None:
             #self.print('Visualizing chains...')
@@ -689,7 +688,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         X_s = F.one_hot(sampled_s.X, num_classes=self.Xdim_output).float()
         E_s = F.one_hot(sampled_s.E, num_classes=self.Edim_output).float()
 
-        assert (E_s == torch.transpose(E_s, 1, 2)).all()
+        #assert (E_s == torch.transpose(E_s, 1, 2)).all()
         assert (X_t.shape == X_s.shape) and (E_t.shape == E_s.shape)
 
         out_one_hot = utils.PlaceHolder(X=X_s, E=E_s, y=torch.zeros(y_t.shape[0], 0))

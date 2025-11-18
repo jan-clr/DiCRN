@@ -119,7 +119,7 @@ class SWITCHESGraphDataModule(AbstractDataModule):
 
         datasets = {'train': SWITCHESGraph(split='train', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path),
                     'val': SWITCHESGraph(split='val', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path),
-                    'test': SWITCHESGraph(split='test', pre_transform=['type_one_hot', 'edge_one_hot'], root=root_path)}
+                    'test': SWITCHESGraph(split='test', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path)}
         # print(f'Dataset sizes: train {train_len}, val {val_len}, test {test_len}')
 
         super().__init__(cfg, datasets)
