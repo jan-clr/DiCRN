@@ -399,7 +399,7 @@ def sample_discrete_feature_noise(limit_dist, node_mask):
     #assert (U_E == torch.transpose(U_E, 1, 2)).all()
 
     # Set main diagonal to zero, since no self-loops TODO: check if this is working correctly
-    diag_mask = torch.eye(U_E.size(1), device=U_E.device, dtype=torch.bool).unsqueeze(0)
+    diag_mask = torch.eye(U_E.size(1), device=U_E.device, dtype=torch.bool).unsqueeze(0).expand(bs, -1, -1)
     U_E[diag_mask] = 0
 
     return PlaceHolder(X=U_X, E=U_E, y=U_y).mask(node_mask)
