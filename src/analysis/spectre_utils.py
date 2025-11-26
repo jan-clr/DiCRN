@@ -548,6 +548,8 @@ def eval_acc_switches_graph(G_list):
     return count / float(len(G_list))
 
 
+
+
 def is_planar_graph(G):
     return nx.is_connected(G) and nx.check_planarity(G)[0]
 
@@ -739,6 +741,44 @@ def eval_fraction_unique_non_isomorphic_valid(fake_graphs, train_graphs, validit
     return frac_unique, frac_unique_non_isomorphic, frac_unique_non_isomorphic_valid
 
 
+def eval_fraction_valid_degrees(fake_graphs):
+    count_valid = 0
+
+    for graph in fake_graphs:
+        invalid_reaction_degrees = 0
+        in_degree = graph.in_degree
+        out_degree = graph.out_degree
+        for n in graph.nodes():
+            node_type = graph.nodes[n].get('type')
+            if node_type == 1:
+                if in_degree[n] < 1 or in_degree[n] > 2 or out_degree[n] < 1 or out_degree[n] > 2:
+                    invalid_reaction_degrees += 1
+
+        has_valid_degrees = invalid_reaction_degrees == 0
+        if has_valid_degrees:
+            count_valid += 1
+
+    return float(count_valid) / float(len(fake_graphs))
+
+def eval_fraction_bipartite(fake_graphs):
+    count_bipartite = 0
+
+    for graph in fake_graphs:
+        if nx.is_bipartite(graph):
+            count_bipartite += 1
+
+    return float(count_bipartite) / float(len(fake_graphs))
+
+def fraction_connected_graphs(fake_graphs):
+    count_connected = 0
+
+    for graph in fake_graphs:
+        if nx.is_weakly_connected(graph):
+            count_connected += 1
+
+    return float(count_connected) / float(len(fake_graphs))
+
+
 class SpectreSamplingMetrics(nn.Module):
     def __init__(self, datamodule, compute_emd, metrics_list):
         super().__init__()
@@ -756,7 +796,7 @@ class SpectreSamplingMetrics(nn.Module):
         for i, batch in enumerate(loader):
             data_list = batch.to_data_list()
             for j, data in enumerate(data_list):
-                networkx_graphs.append(to_networkx(data, node_attrs=None, edge_attrs=None, to_undirected=True,
+                networkx_graphs.append(to_networkx(data, node_attrs=None, edge_attrs=None, to_undirected=False,
                                                    remove_self_loops=True))
         return networkx_graphs
 
@@ -771,10 +811,25 @@ class SpectreSamplingMetrics(nn.Module):
             print("Building networkx graphs...")
         for graph in generated_graphs:
             node_types, edge_types = graph
-            A = edge_types.bool().cpu().numpy()
-            adjacency_matrices.append(A)
+            A = edge_types.cpu().numpy()
+            #adjacency_matrices.append(A)
 
-            nx_graph = nx.from_numpy_array(A)
+            #nx_graph = nx.from_numpy_array(A, create_using=nx.DiGraph)
+            #networkx_graphs.append(nx_graph)
+
+            nx_graph = nx.DiGraph()
+
+            for i in range(len(node_types)):
+                if node_types[i] == -1:
+                    continue
+                nx_graph.add_node(i, number=i, symbol=node_types[i], color_val=node_types[i], type=node_types[i])
+
+            rows, cols = np.where(A >= 1)
+            edges = zip(rows.tolist(), cols.tolist())
+            for edge in edges:
+                edge_type = A[edge[0]][edge[1]]
+                nx_graph.add_edge(edge[0], edge[1], color=float(edge_type), weight=3 * edge_type, stoichiometry=edge_type)
+
             networkx_graphs.append(nx_graph)
 
         np.savez('generated_adjs.npz', *adjacency_matrices)
@@ -855,6 +910,30 @@ class SpectreSamplingMetrics(nn.Module):
             if wandb.run:
                 wandb.run.summary['switches_acc'] = switches_acc
 
+        if 'valid_degrees' in self.metrics_list:
+            if local_rank ==0:
+                print('Computing valid degrees fraction...')
+            valid_degrees_frac = eval_fraction_valid_degrees(networkx_graphs)
+            to_log['valid_degrees_frac'] = valid_degrees_frac
+            if wandb.run:
+                wandb.run.summary['valid_degrees_frac'] = valid_degrees_frac
+
+        if 'bipartite' in self.metrics_list:
+            if local_rank ==0:
+                print('Computing bipartite fraction...')
+            bipartite_frac = eval_fraction_bipartite(networkx_graphs)
+            to_log['bipartite_frac'] = bipartite_frac
+            if wandb.run:
+                wandb.run.summary['bipartite_frac'] = bipartite_frac
+
+        if 'connected_frac' in self.metrics_list:
+            if local_rank ==0:
+                print('Computing connected fraction...')
+            connected_frac = fraction_connected_graphs(networkx_graphs)
+            to_log['connected_frac'] = connected_frac
+            if wandb.run:
+                wandb.run.summary['connected_frac'] = connected_frac
+
         if 'sbm' or 'planar' or 'switches' in self.metrics_list:
             if local_rank == 0:
                 print("Computing all fractions...")
@@ -875,8 +954,7 @@ class SpectreSamplingMetrics(nn.Module):
 
         if local_rank == 0:
             print("Sampling statistics", to_log)
-        if wandb.run:
-            wandb.log(to_log, commit=False)
+        return to_log
 
     def reset(self):
         pass
@@ -907,4 +985,4 @@ class SWITCHESSamplingMetrics(SpectreSamplingMetrics):
     def __init__(self, datamodule):
         super().__init__(datamodule=datamodule,
                          compute_emd=False,
-                         metrics_list=['degree', 'clustering', 'spectre', 'switches'])
+                         metrics_list=['switches', 'valid_degrees', 'bipartite', 'connected_frac'])

@@ -210,8 +210,9 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                 samples_left_to_generate -= to_generate
                 chains_left_to_save -= chains_save
             self.print("Computing sampling metrics...")
-            self.sampling_metrics.forward(samples, self.name, self.current_epoch, val_counter=-1, test=False,
+            sampling_logs = self.sampling_metrics.forward(samples, self.name, self.current_epoch, val_counter=-1, test=False,
                                           local_rank=self.local_rank)
+            self.log_dict(sampling_logs)
             self.print(f'Done. Sampling took {time.time() - start:.2f} seconds\n')
             print("Validation epoch end ends...")
 
@@ -248,7 +249,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                    f"Test Edge type KL: {metrics[2] :.2f}")
 
         test_nll = metrics[0]
-        self.log({"test/epoch_NLL": test_nll})
+        #self.log({"test/epoch_NLL": test_nll})
 
         self.print(f'Test loss: {test_nll :.4f}')
 
@@ -293,7 +294,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                     f.write("\n")
                 f.write("\n")
         self.print("Generated graphs Saved. Computing sampling metrics...")
-        self.sampling_metrics(samples, self.name, self.current_epoch, self.val_counter, test=True, local_rank=self.local_rank)
+        sampling_logs = self.sampling_metrics(samples, self.name, self.current_epoch, self.val_counter, test=True, local_rank=self.local_rank)
+        self.log_dict(sampling_logs)
         self.print("Done testing.")
 
     def generate_samples(self):
@@ -337,6 +339,10 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                         f.write(f"{bond} ")
                     f.write("\n")
                 f.write("\n")
+
+        print("Generated graphs Saved. Done.")
+        sampling_logs = self.sampling_metrics(samples, self.name, self.current_epoch, self.val_counter, test=True, local_rank=self.local_rank)
+        print(sampling_logs)
 
     def kl_prior(self, X, E, node_mask):
         """Computes the KL between q(z1 | x) and the prior p(z1) = Normal(0, 1).
