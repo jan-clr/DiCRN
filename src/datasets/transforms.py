@@ -156,6 +156,17 @@ def empty_target(graph: Data):
     return graph
 
 
+def nr_species_target(graph: Data, replace=True):
+    """
+    Sets the target to be the number of species in the graph.
+    :param graph: The graph data object in torch_geometric format.
+    :return:
+    """
+    features = torch.tensor([graph.num_species], dtype=torch.float)
+    graph.y = features if graph.y is None or replace else torch.cat((graph.y, features), dim=1)
+    return graph
+
+
 def key_to_transform(key):
     if key == "degree" or key == "total_degree":
         return total_degree_feature

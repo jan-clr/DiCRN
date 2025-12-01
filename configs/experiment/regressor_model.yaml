@@ -2,14 +2,21 @@
 general:
     name : 'regressor'
     gpus : 1
-    wandb: 'online'
+    wandb: 'disabled'
     remove_h: True
-    target: 'both'                    # 'mu', 'homo', 'both', 'no-target'
+    target: 'nr_species'                    # 'mu', 'homo', 'both', 'no-target'
 train:
-    n_epochs: 1200
+    n_epochs: 100
     batch_size: 512
     save_model: True
 model:
     n_layers: 5
     lambda_train: [2, 0]
     extra_features: null
+
+    # Do not set hidden_mlp_E, dim_ffE too high, computing large tensors on the edges is costly
+    # At the moment (03/08), y contains quite little information
+    #hidden_mlp_dims: { 'X': 128, 'E': 64, 'y': 128 }
+
+    # The dimensions should satisfy dx % n_head == 0
+    #hidden_dims: { 'dx': 256, 'de': 64, 'dy': 64, 'n_head': 8, 'dim_ffX': 256, 'dim_ffE': 64, 'dim_ffy': 256 }

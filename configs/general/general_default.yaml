@@ -8,7 +8,7 @@ guidance_target: null
 
 resume: null            # If resume, path to ckpt file from outputs directory in main directory
 test_only: null         # Use absolute path
-log_dir: $WORK/dicrn
+log_dir: ${oc.env.WORK}/dicrn
 
 check_val_every_n_epochs: 5
 sample_every_val: 4

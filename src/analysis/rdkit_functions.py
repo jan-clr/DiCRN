@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import re
-import wandb
 try:
     from rdkit import Chem
     print("Found rdkit, all good")
@@ -292,7 +291,7 @@ def check_stability(atom_types, edge_types, dataset_info, debug=False,atom_decod
     return molecule_stable, n_stable_bonds, len(atom_types)
 
 
-def compute_molecular_metrics(molecule_list, train_smiles, dataset_info):
+def compute_molecular_metrics(molecule_list, train_smiles, dataset_info, trainer=None):
     """ molecule_list: (dict) """
 
     if not dataset_info.remove_h:
@@ -324,11 +323,12 @@ def compute_molecular_metrics(molecule_list, train_smiles, dataset_info):
     metrics = BasicMolecularMetrics(dataset_info, train_smiles)
     rdkit_metrics = metrics.evaluate(molecule_list)
     all_smiles = rdkit_metrics[-1]
-    if wandb.run:
+    if trainer is not None:
+        trainer.log_dict({'Validity': rdkit_metrics[0][0], 'Relaxed Validity': rdkit_metrics[0][1],
+                          'Uniqueness': rdkit_metrics[0][2], 'Novelty': rdkit_metrics[0][3]})
         nc = rdkit_metrics[-2]
-        dic = {'Validity': rdkit_metrics[0][0], 'Relaxed Validity': rdkit_metrics[0][1],
-               'Uniqueness': rdkit_metrics[0][2], 'Novelty': rdkit_metrics[0][3],
-               'nc_max': nc['nc_max'], 'nc_mu': nc['nc_mu']}
-        wandb.log(dic)
+        trainer.log("nc_min", nc["nc_min"], reduce_fx="min")
+        trainer.log("nc_max", nc["nc_max"], reduce_fx="max")
+        trainer.log("nc_mu", nc["nc_mu"], reduce_fx="mean")
 
     return validity_dict, rdkit_metrics, all_smiles

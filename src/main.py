@@ -1,4 +1,10 @@
-import graph_tool as gt
+# These imports are tricky because they use c++, do not move them
+from rdkit import Chem
+try:
+    import graph_tool
+except ModuleNotFoundError:
+    pass
+
 import os
 import pathlib
 import warnings
@@ -10,6 +16,7 @@ from src.analysis.visualization import CRNVisualization
 
 torch.cuda.empty_cache()
 import hydra
+import omegaconf
 from omegaconf import DictConfig
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -32,6 +39,7 @@ def get_resume(cfg, model_kwargs):
     saved_cfg = cfg.copy()
     name = cfg.general.name + '_resume'
     resume = cfg.general.test_only
+    chains_to_save = cfg.general.chains_to_save
     if cfg.model.type == 'discrete':
         model = DiscreteDenoisingDiffusion.load_from_checkpoint(resume, **model_kwargs)
     else:
@@ -39,6 +47,7 @@ def get_resume(cfg, model_kwargs):
     cfg = model.cfg
     cfg.general.test_only = resume
     cfg.general.name = name
+    cfg.general.chains_to_save = chains_to_save
     cfg = utils.update_config_with_new_keys(cfg, saved_cfg)
     return cfg, model
 
@@ -213,7 +222,9 @@ def main(cfg: DictConfig):
         callbacks.append(ema_callback)
 
     name = cfg.general.name
-    if name == 'debug':
+    if name == 'test':
+        print("[WARNING]: Run is called 'test' -- it will run in debug mode on 20 batches. ")
+    elif name == 'debug':
         print("[WARNING]: Run is called 'debug' -- it will run with fast_dev_run. ")
 
     use_gpu = cfg.general.gpus > 0 and torch.cuda.is_available()
@@ -221,12 +232,16 @@ def main(cfg: DictConfig):
 
     logger = TensorBoardLogger(cfg.general.log_dir, name=name)
     trainer = Trainer(gradient_clip_val=cfg.train.clip_grad,
-                      strategy="ddp_find_unused_parameters_true",  # Needed to load old checkpoints
-                      accelerator='gpu' if use_gpu else 'cpu',
-                      devices=cfg.general.gpus if use_gpu else 1,
+                      accelerator='gpu' if torch.cuda.is_available() and cfg.general.gpus > 0 else 'cpu',
+                      devices=cfg.general.gpus if torch.cuda.is_available() and cfg.general.gpus > 0 else None,
+                      limit_train_batches=20 if name == 'test' else None,
+                      limit_val_batches=20 if name == 'test' else None,
+                      limit_test_batches=20 if name == 'test' else None,
+                      val_check_interval=cfg.general.val_check_interval,
                       max_epochs=cfg.train.n_epochs,
                       check_val_every_n_epoch=cfg.general.check_val_every_n_epochs,
                       fast_dev_run=cfg.general.name == 'debug',
+                      strategy='ddp' if cfg.general.gpus > 1 else None,
                       enable_progress_bar=False,
                       callbacks=callbacks,
                       log_every_n_steps=50 if name != 'debug' else 1,

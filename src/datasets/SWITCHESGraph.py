@@ -109,13 +109,18 @@ class SWITCHESGraph(InMemoryDataset):
 
 
 class SWITCHESGraphDataModule(AbstractDataModule):
-    def __init__(self, cfg, n_graphs=200):
+    def __init__(self, cfg, regressor=False):
         self.cfg = cfg
         self.datadir = cfg.dataset.datadir
+        self.regressor = regressor
         base_path = pathlib.Path(os.path.realpath(__file__)).parents[2]
         root_path = os.path.join(base_path, self.datadir)
 
-        transform = transforms.empty_target if cfg.general.guidance_target is None else None
+        transform = None
+        if cfg.general.guidance_target is None:
+            transform = transforms.empty_target
+        elif cfg.general.guidance_target == 'nr_species':
+            transform = transforms.nr_species_target
 
         datasets = {'train': SWITCHESGraph(split='train', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path),
                     'val': SWITCHESGraph(split='val', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path),
