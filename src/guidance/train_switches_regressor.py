@@ -11,7 +11,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 import warnings
 
-import src.utils as utils
+from src.utils import create_folders
 import src.datasets.SWITCHESGraph as switches_dataset
 from src.metrics.abstract_metrics import TrainAbstractMetricsDiscrete
 from src.analysis.visualization import CRNVisualization
@@ -53,7 +53,7 @@ def main(cfg: DictConfig):
                     'sampling_metrics': sampling_metrics, 'visualization_tools': visualization_tools,
                     'extra_features': extra_features, 'domain_features': domain_features}
 
-    utils.create_folders(cfg)
+    create_folders(cfg)
 
     model = SwitchesRegressorDiscrete(cfg=cfg, **model_kwargs)
 
