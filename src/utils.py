@@ -128,9 +128,9 @@ class EMA(pl.Callback):
         checkpoint["_ema_state_dict_ready"] = self._ema_state_dict_ready
 
     @overrides
-    def on_load_checkpoint(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict):
-        self._ema_state_dict_ready = callback_state["_ema_state_dict_ready"]
-        self.ema_state_dict = callback_state["ema_state_dict"]
+    def on_load_checkpoint(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict):
+        self._ema_state_dict_ready = checkpoint["_ema_state_dict_ready"]
+        self.ema_state_dict = checkpoint["ema_state_dict"]
 
 
 def normalize(X, E, y, norm_values, norm_biases, node_mask):
