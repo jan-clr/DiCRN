@@ -63,7 +63,7 @@ class SwitchesRegressorDiscrete(pl.LightningModule):
         self.train_metrics = train_metrics
         self.sampling_metrics = sampling_metrics
 
-        self.save_hyperparameters(ignore=[train_metrics, sampling_metrics, dataset_infos])
+        self.save_hyperparameters(ignore=[train_metrics, sampling_metrics, data])
         self.visualization_tools = visualization_tools
         self.extra_features = extra_features
         self.domain_features = domain_features
@@ -177,7 +177,7 @@ class SwitchesRegressorDiscrete(pl.LightningModule):
         # self.log('val_loss', mae, prog_bar=True, on_step=False, on_epoch=True)
         return {'val_loss': mae}
 
-    def validation_epoch_end(self, outs) -> None:
+    def on_validation_epoch_end(self) -> None:
         val_mae = self.val_loss.compute()
         to_log = {"val/epoch_mae": val_mae}
         print(f"Epoch {self.current_epoch}: val_mae: {val_mae :.3f}")
