@@ -46,7 +46,7 @@ def main(cfg: DictConfig):
 
     train_metrics = TrainAbstractMetricsDiscrete()
 
-    sampling_metrics = SWITCHESSamplingMetrics(dataset_infos)
+    sampling_metrics = SWITCHESSamplingMetrics(datamodule=datamodule)
     visualization_tools = CRNVisualization()
 
     model_kwargs = {'dataset_infos': dataset_infos, 'train_metrics': train_metrics,
