@@ -31,7 +31,7 @@ def main(cfg: DictConfig):
     assert dataset_config["name"] == 'switches'
     assert cfg.model.type == 'discrete'
     datamodule = switches_dataset.SWITCHESGraphDataModule(cfg, regressor=True)
-    dataset_infos = switches_dataset.SWITCHESDatasetInfos(datamodule=datamodule, cfg=cfg)
+    dataset_infos = switches_dataset.SWITCHESDatasetInfos(datamodule=datamodule, dataset_config=dataset_config)
     #datamodule.prepare_data()
 
     if cfg.model.extra_features is not None:
