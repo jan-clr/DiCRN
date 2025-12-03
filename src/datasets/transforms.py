@@ -162,7 +162,7 @@ def nr_species_target(graph: Data, replace=True):
     :param graph: The graph data object in torch_geometric format.
     :return:
     """
-    features = torch.tensor([graph.num_species], dtype=torch.float)
+    features = torch.tensor([[graph.num_species]], dtype=torch.float)
     graph.y = features if graph.y is None or replace else torch.cat((graph.y, features), dim=1)
     return graph
 
