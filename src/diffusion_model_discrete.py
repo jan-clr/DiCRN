@@ -126,8 +126,6 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         print("Fit started reached")
         self.train_iterations = len(self.trainer.datamodule.train_dataloader())
         self.print("Size of the input features", self.Xdim, self.Edim, self.ydim)
-        if self.local_rank == 0:
-            utils.setup_wandb(self.cfg)
 
     def on_train_epoch_start(self) -> None:
         self.print("Starting train epoch...")
@@ -223,8 +221,6 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         self.test_E_kl.reset()
         self.test_X_logp.reset()
         self.test_E_logp.reset()
-        if self.local_rank == 0:
-            utils.setup_wandb(self.cfg)
 
     def test_step(self, data, i):
         dense_data, node_mask = utils.to_dense(data.x, data.edge_index, data.edge_attr, data.batch)
