@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
 import time
-import wandb
 from torchmetrics import MeanSquaredError, MeanAbsoluteError
 
 from src.models.transformer_model import GraphTransformer
@@ -156,7 +155,7 @@ class SwitchesRegressorDiscrete(pl.LightningModule):
         to_log = {"train_epoch/mse": train_mse}
         print(f"Epoch {self.current_epoch}: train_mse: {train_mse :.3f} -- {time.time() - self.start_epoch_time:.1f}s ")
 
-        wandb.log(to_log)
+        self.log_dict(to_log)
         self.train_loss.reset()
 
     def on_validation_epoch_start(self) -> None:
@@ -181,7 +180,6 @@ class SwitchesRegressorDiscrete(pl.LightningModule):
         val_mae = self.val_loss.compute()
         to_log = {"val/epoch_mae": val_mae}
         print(f"Epoch {self.current_epoch}: val_mae: {val_mae :.3f}")
-        wandb.log(to_log)
         self.log('val/epoch_mae', val_mae, on_epoch=True, on_step=False)
 
         if val_mae < self.best_val_mae:
@@ -291,5 +289,5 @@ class SwitchesRegressorDiscrete(pl.LightningModule):
         mse = self.train_loss(pred.y, target)
 
         if log:
-            wandb.log({"train_loss/batch_mse": mse.item()}, commit=True)
+            self.log_dict({"train_loss/batch_mse": mse.item()})
         return mse

@@ -10,6 +10,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 import warnings
+from pytorch_lightning.loggers import TensorBoardLogger
 
 from src.utils import create_folders
 import src.datasets.SWITCHESGraph as switches_dataset
@@ -17,7 +18,6 @@ from src.metrics.abstract_metrics import TrainAbstractMetricsDiscrete
 from src.analysis.visualization import CRNVisualization
 from src.analysis.spectre_utils import SWITCHESSamplingMetrics
 from src.diffusion.extra_features import DummyExtraFeatures, ExtraFeatures
-from src.diffusion.extra_features_molecular import ExtraMolecularFeatures
 from src.guidance.switches_regressor_discrete import SwitchesRegressorDiscrete
 
 
@@ -72,9 +72,10 @@ def main(cfg: DictConfig):
     name = cfg.general.name
     if name == 'debug':
         print("[WARNING]: Run is called 'debug' -- it will run with fast_dev_run. ")
+    logger = TensorBoardLogger(save_dir=cfg.general.log_dir, name=cfg.general.name)
     trainer = Trainer(gradient_clip_val=cfg.train.clip_grad,
-                      accelerator='gpu' if cfg.general.gpus > 0 and torch.cuda.is_available() else 'cpu',
-                      devices=1 if cfg.general.gpus > 0 and torch.cuda.is_available() else None,
+                      accelerator='gpu' if cfg.general.gpus > 0 and torch.cuda.is_available() else "cpu",
+                      devices=1 if cfg.general.gpus > 0 and torch.cuda.is_available() else 1,
                       limit_train_batches=20 if name == 'test' else None,     # TODO: remove
                       limit_val_batches=20 if name == 'test' else None,
                       limit_test_batches=20 if name == 'test' else None,
@@ -82,7 +83,8 @@ def main(cfg: DictConfig):
                       check_val_every_n_epoch=cfg.general.check_val_every_n_epochs,
                       fast_dev_run=cfg.general.name == 'debug',
                       enable_progress_bar=False,
-                      callbacks=callbacks)
+                      callbacks=callbacks,
+                      logger=logger)
 
     trainer.fit(model, datamodule=datamodule, ckpt_path=cfg.general.resume)
 
