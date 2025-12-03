@@ -1,6 +1,6 @@
 #!/bin/bash -l
 #SBATCH --gres=gpu:1
-#SBATCH --time=10:00:00
+#SBATCH --time=14:00:00
 
 # Prepare the environment
 module load cuda/11.8.0

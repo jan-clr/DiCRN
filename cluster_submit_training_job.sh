@@ -6,7 +6,7 @@ mkdir -p logs
 
 timestamp=$(date +%Y%m%d%H%M%S)
 
-runname="digress_${timestamp}"
+runname="dicrn_${timestamp}"
 
 export http_proxy=http://proxy:80
 export https_proxy=http://proxy:80

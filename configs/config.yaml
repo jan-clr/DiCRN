@@ -9,7 +9,7 @@ hydra:
   job:
     chdir: True
   run:
-    dir: $WORK/dicrn/${now:%Y-%m-%d}/${now:%H-%M-%S}-${general.name}
+    dir: ${oc.env:WORK}/dicrn/${now:%Y-%m-%d}/${now:%H-%M-%S}-${general.name}
 
 
 
