@@ -63,7 +63,7 @@ class SwitchesRegressorDiscrete(pl.LightningModule):
         self.train_metrics = train_metrics
         self.sampling_metrics = sampling_metrics
 
-        self.save_hyperparameters(ignore=[train_metrics, sampling_metrics, data])
+        self.save_hyperparameters(ignore=['train_metrics', 'sampling_metrics', 'dataset_infos'])
         self.visualization_tools = visualization_tools
         self.extra_features = extra_features
         self.domain_features = domain_features
@@ -92,7 +92,7 @@ class SwitchesRegressorDiscrete(pl.LightningModule):
         self.limit_dist = utils.PlaceHolder(X=x_marginals, E=e_marginals,
                                             y=torch.ones(self.ydim_output) / self.ydim_output)
 
-        self.save_hyperparameters(ignore=[train_metrics, sampling_metrics])
+        self.save_hyperparameters(ignore=['train_metrics', 'sampling_metrics', 'dataset_infos'])
 
         self.start_epoch_time = None
         self.train_iterations = None
