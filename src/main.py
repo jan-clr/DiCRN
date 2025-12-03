@@ -1,5 +1,4 @@
 # These imports are tricky because they use c++, do not move them
-from rdkit import Chem
 try:
     import graph_tool
 except ModuleNotFoundError:
@@ -10,13 +9,11 @@ import pathlib
 import warnings
 
 import torch
-from torch.utils.tensorboard import SummaryWriter
 
 from src.analysis.visualization import CRNVisualization
 
 torch.cuda.empty_cache()
 import hydra
-import omegaconf
 from omegaconf import DictConfig
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -138,54 +135,6 @@ def main(cfg: DictConfig):
                         'sampling_metrics': sampling_metrics, 'visualization_tools': visualization_tools,
                         'extra_features': extra_features, 'domain_features': domain_features}
 
-    elif dataset_config["name"] in ['qm9', 'guacamol', 'moses']:
-        from metrics.molecular_metrics import TrainMolecularMetrics, SamplingMolecularMetrics
-        from metrics.molecular_metrics_discrete import TrainMolecularMetricsDiscrete
-        from diffusion.extra_features_molecular import ExtraMolecularFeatures
-        from analysis.visualization import MolecularVisualization
-
-        if dataset_config["name"] == 'qm9':
-            from datasets import qm9_dataset
-            datamodule = qm9_dataset.QM9DataModule(cfg)
-            dataset_infos = qm9_dataset.QM9infos(datamodule=datamodule, cfg=cfg)
-            train_smiles = qm9_dataset.get_train_smiles(cfg=cfg, train_dataloader=datamodule.train_dataloader(),
-                                                        dataset_infos=dataset_infos, evaluate_dataset=False)
-        elif dataset_config['name'] == 'guacamol':
-            from datasets import guacamol_dataset
-            datamodule = guacamol_dataset.GuacamolDataModule(cfg)
-            dataset_infos = guacamol_dataset.Guacamolinfos(datamodule, cfg)
-            train_smiles = None
-
-        elif dataset_config.name == 'moses':
-            from datasets import moses_dataset
-            datamodule = moses_dataset.MosesDataModule(cfg)
-            dataset_infos = moses_dataset.MOSESinfos(datamodule, cfg)
-            train_smiles = None
-        else:
-            raise ValueError("Dataset not implemented")
-
-        if cfg.model.type == 'discrete' and cfg.model.extra_features is not None:
-            extra_features = ExtraFeatures(cfg.model.extra_features, dataset_info=dataset_infos)
-            domain_features = ExtraMolecularFeatures(dataset_infos=dataset_infos)
-        else:
-            extra_features = DummyExtraFeatures()
-            domain_features = DummyExtraFeatures()
-
-        dataset_infos.compute_input_output_dims(datamodule=datamodule, extra_features=extra_features,
-                                                domain_features=domain_features)
-
-        if cfg.model.type == 'discrete':
-            train_metrics = TrainMolecularMetricsDiscrete(dataset_infos)
-        else:
-            train_metrics = TrainMolecularMetrics(dataset_infos)
-
-        # We do not evaluate novelty during training
-        sampling_metrics = SamplingMolecularMetrics(dataset_infos, train_smiles)
-        visualization_tools = MolecularVisualization(cfg.dataset.remove_h, dataset_infos=dataset_infos)
-
-        model_kwargs = {'dataset_infos': dataset_infos, 'train_metrics': train_metrics,
-                        'sampling_metrics': sampling_metrics, 'visualization_tools': visualization_tools,
-                        'extra_features': extra_features, 'domain_features': domain_features}
     else:
         raise NotImplementedError("Unknown dataset {}".format(cfg["dataset"]))
 
@@ -241,7 +190,6 @@ def main(cfg: DictConfig):
                       max_epochs=cfg.train.n_epochs,
                       check_val_every_n_epoch=cfg.general.check_val_every_n_epochs,
                       fast_dev_run=cfg.general.name == 'debug',
-                      strategy='ddp' if cfg.general.gpus > 1 else None,
                       enable_progress_bar=False,
                       callbacks=callbacks,
                       log_every_n_steps=50 if name != 'debug' else 1,
