@@ -242,7 +242,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         nll = self.compute_val_loss(pred, noisy_data, dense_data.X, dense_data.E, data.y, node_mask, test=True)
         return {'loss': nll}
 
-    def test_epoch_end(self, outs) -> None:
+    def on_test_epoch_end(self) -> None:
         """ Measure likelihood on a test set and compute stability metrics. """
         metrics = [self.test_nll.compute(), self.test_X_kl.compute(), self.test_E_kl.compute(),
                    self.test_y_kl.compute(), self.test_X_logp.compute(), self.test_E_logp.compute(),
