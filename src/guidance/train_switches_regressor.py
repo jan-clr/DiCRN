@@ -1,10 +1,5 @@
-# Rdkit import should be first, do not move it
-from rdkit import Chem
-
 import torch
-import wandb
 import hydra
-import omegaconf
 from omegaconf import DictConfig
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint

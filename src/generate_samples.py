@@ -4,18 +4,18 @@ import hydra
 import torch
 from omegaconf import DictConfig
 from src import utils
-from metrics.abstract_metrics import TrainAbstractMetricsDiscrete, TrainAbstractMetrics
+from src.metrics.abstract_metrics import TrainAbstractMetricsDiscrete, TrainAbstractMetrics
 
-from diffusion_model_discrete import DiscreteDenoisingDiffusion
-from diffusion.extra_features import DummyExtraFeatures, ExtraFeatures
+from src.diffusion_model_discrete import DiscreteDenoisingDiffusion
+from src.diffusion.extra_features import DummyExtraFeatures, ExtraFeatures
 
 
 @hydra.main(version_base='1.3', config_path='../configs', config_name='config')
 def main(cfg: DictConfig):
     print(cfg)
-    from datasets.SWITCHESGraph import SWITCHESGraphDataModule, SWITCHESDatasetInfos
-    from analysis.spectre_utils import SWITCHESSamplingMetrics
-    from analysis.visualization import NonMolecularVisualization, CRNVisualization
+    from src.datasets.SWITCHESGraph import SWITCHESGraphDataModule, SWITCHESDatasetInfos
+    from src.analysis.spectre_utils import SWITCHESSamplingMetrics
+    from src.analysis.visualization import NonMolecularVisualization, CRNVisualization
 
 
     dataset_config = cfg["dataset"]

@@ -21,11 +21,11 @@ from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from src import utils
-from metrics.abstract_metrics import TrainAbstractMetricsDiscrete, TrainAbstractMetrics
+from src.metrics.abstract_metrics import TrainAbstractMetricsDiscrete, TrainAbstractMetrics
 
-from diffusion_model import LiftedDenoisingDiffusion
-from diffusion_model_discrete_guidance import DiscreteDenoisingDiffusion
-from diffusion.extra_features import DummyExtraFeatures, ExtraFeatures
+from src.diffusion_model import LiftedDenoisingDiffusion
+from src.diffusion_model_discrete_guidance import DiscreteDenoisingDiffusion
+from src.diffusion.extra_features import DummyExtraFeatures, ExtraFeatures
 
 
 warnings.filterwarnings("ignore", category=PossibleUserWarning)
@@ -81,9 +81,9 @@ def main(cfg: DictConfig):
     dataset_config = cfg["dataset"]
 
     if dataset_config["name"] in ['sbm', 'comm20', 'planar']:
-        from datasets.spectre_dataset import SpectreGraphDataModule, SpectreDatasetInfos
-        from analysis.spectre_utils import PlanarSamplingMetrics, SBMSamplingMetrics, Comm20SamplingMetrics
-        from analysis.visualization import NonMolecularVisualization
+        from src.datasets.spectre_dataset import SpectreGraphDataModule, SpectreDatasetInfos
+        from src.analysis.spectre_utils import PlanarSamplingMetrics, SBMSamplingMetrics, Comm20SamplingMetrics
+        from src.analysis.visualization import NonMolecularVisualization
 
         datamodule = SpectreGraphDataModule(cfg)
         if dataset_config['name'] == 'sbm':
@@ -111,9 +111,9 @@ def main(cfg: DictConfig):
                         'extra_features': extra_features, 'domain_features': domain_features}
 
     elif dataset_config["name"] == 'switches':
-        from datasets.SWITCHESGraph import SWITCHESGraphDataModule, SWITCHESDatasetInfos
-        from analysis.spectre_utils import SWITCHESSamplingMetrics
-        from analysis.visualization import NonMolecularVisualization
+        from src.datasets.SWITCHESGraph import SWITCHESGraphDataModule, SWITCHESDatasetInfos
+        from src.analysis.spectre_utils import SWITCHESSamplingMetrics
+        from src.analysis.visualization import NonMolecularVisualization
 
         datamodule = SWITCHESGraphDataModule(cfg)
         sampling_metrics = SWITCHESSamplingMetrics(datamodule)

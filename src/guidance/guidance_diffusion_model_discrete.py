@@ -11,24 +11,13 @@ from omegaconf import OmegaConf, open_dict
 from src.models.transformer_model import GraphTransformer
 from src.diffusion.noise_schedule import DiscreteUniformTransition, PredefinedNoiseScheduleDiscrete, MarginalUniformTransition
 from src.diffusion import diffusion_utils
-import networkx as nx
 from src.metrics.abstract_metrics import NLL, SumExceptBatchKL, SumExceptBatchMetric
 from src.metrics.train_metrics import TrainLossDiscrete
 import src.utils as utils
 
 # packages for conditional generation with guidance
 from torchmetrics import MeanSquaredError, MeanAbsoluteError
-from rdkit.Chem.rdDistGeom import ETKDGv3, EmbedMolecule
-from rdkit.Chem.rdForceFieldHelpers import MMFFHasAllMoleculeParams, MMFFOptimizeMolecule
-from rdkit import Chem
 import math
-try:
-    import psi4
-except ModuleNotFoundError:
-    print("PSI4 not found")
-from src.analysis.rdkit_functions import build_molecule, mol2smiles, build_molecule_with_partial_charges
-import pickle
-import pandas as pd
 
 
 class DiscreteDenoisingDiffusion(pl.LightningModule):
@@ -150,21 +139,19 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                                     input_properties=target_properties)
         print(f'Sampling took {time.time() - start:.2f} seconds\n')
 
-        self.save_cond_samples(samples, target_properties, file_path=os.path.join(os.getcwd(), f'cond_smiles{i}.pkl'))
+        self.save_cond_samples(samples, target_properties, file_path=os.path.join(os.getcwd(), f'cond_smiles{i}.pkl')) # TODO: change file name
         # save conditional generated samples
         mae = self.cond_sample_metric(samples, target_properties)
         return {'mae': mae}
 
-    def test_epoch_end(self, outs) -> None:
+    def on_test_epoch_end(self) -> None:
         """ Measure likelihood on a test set and compute stability metrics. """
         final_mae = self.cond_val.compute()
         final_validity = self.num_valid_molecules / self.num_total
         print("Final MAE", final_mae)
         print("Final validity", final_validity * 100)
 
-        wandb.run.summary['final_MAE'] = final_mae
-        wandb.run.summary['final_validity'] = final_validity
-        wandb.log({'final mae': final_mae,
+        self.log_dict({'final mae': final_mae,
                    'final validity': final_validity})
 
     def apply_noise(self, X, E, y, node_mask):
@@ -323,133 +310,27 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
 
     def cond_sample_metric(self, samples, input_properties):
-        mols_dipoles = []
-        mols_homo = []
-
-        # Hardware side settings (CPU thread number and memory settings used for calculation)
-        psi4.set_num_threads(nthread=4)
-        psi4.set_memory("5GB")
-        psi4.core.set_output_file('psi4_output.dat', False)
+        crns_nr_species = []
 
         for sample in samples:
-            mol = build_molecule_with_partial_charges(sample[0], sample[1], self.dataset_info.atom_decoder)
+            crns_nr_species.append((sample[0] == 0).sum())
 
-            try:
-                Chem.SanitizeMol(mol)
-            except:
-                print('invalid chemistry')
-                continue
-
-            # Coarse 3D structure optimization by generating 3D structure from SMILES
-            mol = Chem.AddHs(mol)
-            params = ETKDGv3()
-            params.randomSeed = 1
-            try:
-                EmbedMolecule(mol, params)
-            except Chem.rdchem.AtomValenceException:
-                print('invalid chemistry')
-                continue
-
-            # Structural optimization with MMFF (Merck Molecular Force Field)
-            try:
-                s = MMFFOptimizeMolecule(mol)
-                print(s)
-            except:
-                print('Bad conformer ID')
-                continue
-
-            conf = mol.GetConformer()
-
-            # Convert to a format that can be input to Psi4.
-            # Set charge and spin multiplicity (below is charge 0, spin multiplicity 1)
-
-            # Get the formal charge
-            fc = 'FormalCharge'
-            mol_FormalCharge = int(mol.GetProp(fc)) if mol.HasProp(fc) else Chem.GetFormalCharge(mol)
-
-            sm = 'SpinMultiplicity'
-            if mol.HasProp(sm):
-                mol_spin_multiplicity = int(mol.GetProp(sm))
-            else:
-                # Calculate spin multiplicity using Hund's rule of maximum multiplicity...
-                NumRadicalElectrons = 0
-                for Atom in mol.GetAtoms():
-                    NumRadicalElectrons += Atom.GetNumRadicalElectrons()
-                TotalElectronicSpin = NumRadicalElectrons / 2
-                SpinMultiplicity = 2 * TotalElectronicSpin + 1
-                mol_spin_multiplicity = int(SpinMultiplicity)
-
-            mol_input = "%s %s" % (mol_FormalCharge, mol_spin_multiplicity)
-            print(mol_input)
-            #mol_input = "0 1"
-
-            # Describe the coordinates of each atom in XYZ format
-            for atom in mol.GetAtoms():
-                mol_input += "\n " + atom.GetSymbol() + " " + str(conf.GetAtomPosition(atom.GetIdx()).x) \
-                             + " " + str(conf.GetAtomPosition(atom.GetIdx()).y) \
-                             + " " + str(conf.GetAtomPosition(atom.GetIdx()).z)
-
-            try:
-                molecule = psi4.geometry(mol_input)
-            except:
-                print('Can not calculate psi4 geometry')
-                continue
-
-            # Convert to a format that can be input to pyscf
-            # Set calculation method (functional) and basis set
-            level = "b3lyp/6-31G*"
-
-            # Calculation method (functional), example of basis set
-            # theory = ['hf', 'b3lyp']
-            # basis_set = ['sto-3g', '3-21G', '6-31G(d)', '6-31+G(d,p)', '6-311++G(2d,p)']
-
-            # Perform structural optimization calculations
-            print('Psi4 calculation starts!!!')
-            #energy, wave_function = psi4.optimize(level, molecule=molecule, return_wfn=True)
-            try:
-                energy, wave_function = psi4.energy(level, molecule=molecule, return_wfn=True)
-            except psi4.driver.SCFConvergenceError:
-                print("Psi4 did not converge")
-                continue
-
-            print('Chemistry information check!!!')
-
-            if self.args.general.guidance_target in ['mu', 'both']:
-                dip_x, dip_y, dip_z = wave_function.variable('SCF DIPOLE')[0],\
-                                      wave_function.variable('SCF DIPOLE')[1],\
-                                      wave_function.variable('SCF DIPOLE')[2]
-                dipole_moment = math.sqrt(dip_x**2 + dip_y**2 + dip_z**2) * 2.5417464519
-                print("Dipole moment", dipole_moment)
-                mols_dipoles.append(dipole_moment)
-
-            if self.args.general.guidance_target in ['homo', 'both']:
-                # Compute HOMO (Unit: au= Hartree）
-                LUMO_idx = wave_function.nalpha()
-                HOMO_idx = LUMO_idx - 1
-                homo = wave_function.epsilon_a_subset("AO", "ALL").np[HOMO_idx]
-
-                # convert unit from a.u. to ev
-                homo = homo * 27.211324570273
-                print("HOMO", homo)
-                mols_homo.append(homo)
-
-        num_valid_molecules = max(len(mols_dipoles), len(mols_homo))
+        num_valid_molecules = max(len(crns_nr_species), 1)
         print("Number of valid samples", num_valid_molecules)
         self.num_valid_molecules += num_valid_molecules
         self.num_total += len(samples)
 
-        mols_dipoles = torch.FloatTensor(mols_dipoles)
-        mols_homo = torch.FloatTensor(mols_homo)
+        crns_nr_species = torch.FloatTensor(crns_nr_species)
 
-        if self.args.general.guidance_target == 'mu':
-            mae = self.cond_val(mols_dipoles.unsqueeze(1),
-                                input_properties.repeat(len(mols_dipoles), 1).cpu())
+        if self.args.general.guidance_target == 'nr_species':
+            mae = self.cond_val(crns_nr_species.unsqueeze(1),
+                                input_properties.repeat(len(crns_nr_species), 1).cpu())
 
-        elif self.args.general.guidance_target == 'homo':
-            mae = self.cond_val(mols_homo.unsqueeze(1),
-                                input_properties.repeat(len(mols_homo), 1).cpu())
+        elif self.args.general.guidance_target == 'bistability':
+            raise NotImplementedError
 
         elif self.args.general.guidance_target == 'both':
+            raise NotImplementedError
             properties = torch.hstack((mols_dipoles.unsqueeze(1), mols_homo.unsqueeze(1)))
             mae = self.cond_val(properties,
                                 input_properties.repeat(len(mols_dipoles), 1).cpu())
@@ -457,7 +338,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         print('Conditional generation metric:')
         print(f'Epoch {self.current_epoch}: MAE: {mae}')
         wandb.log({"val_epoch/conditional generation mae": mae,
-                   'Valid molecules': num_valid_molecules})
+                   'Valid crn': num_valid_molecules})
         return mae
 
     def cond_fn(self, noisy_data, node_mask, target=None):
@@ -572,7 +453,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         X_s = F.one_hot(sampled_s.X, num_classes=self.Xdim_output).float()
         E_s = F.one_hot(sampled_s.E, num_classes=self.Edim_output).float()
 
-        assert (E_s == torch.transpose(E_s, 1, 2)).all()
+        # remove for directed graphs
+        #assert (E_s == torch.transpose(E_s, 1, 2)).all()
         assert (X_t.shape == X_s.shape) and (E_t.shape == E_s.shape)
 
         out_one_hot = utils.PlaceHolder(X=X_s, E=E_s, y=torch.zeros(y_t.shape[0], 0))
