@@ -1,6 +1,6 @@
 # @package _global_
 general:
-    name : 'guidance_homo'
+    name : 'guidance_nr_species'
     gpus : 1
     wandb: 'disabled'
     sample_every_val: 1
@@ -11,15 +11,15 @@ general:
     chains_to_save: 0
     number_chain_steps: 10        # Number of frames in each gif
     # THIS SHOULD BE THE SAME AS THE REGRESSION MODEL THAT IS LOADED
-    guidance_target: 'homo'            # 'mu', 'homo', 'both', 'no-target'
-    trained_regressor_path: ~/src/public/DiGress/saved_models/regressor_homo_debug.ckpt
-    test_only: /Users/clementvignac/src/public/DiGress/saved_models/unconditional_debug.ckpt
+    guidance_target: 'nr_species'            # 'mu', 'homo', 'both', 'no-target'
+    trained_regressor_path: /Volumes/PortableSSD/crngen/2025-12-03/12-56-47-regressor/checkpoints/regressor/last.ckpt
+    test_only: /Volumes/PortableSSD/crngen/2025-12-04/15-41-59-switches/checkpoints/switches/last.ckpt
 train:
     batch_size: 1               # Needs to be 1 for testing
     save_model: False
 model:
     n_layers: 2
-    extra_features: null
+    extra_features: 'cycles'
 guidance:
     lambda_guidance: 300.0
     n_experiments: 2          # Change to 100

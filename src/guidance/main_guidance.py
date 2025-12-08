@@ -81,7 +81,7 @@ def main(cfg: DictConfig):
     current_path = os.path.dirname(os.path.realpath(__file__))
     root_dir = current_path.split('outputs')[0]
 
-    guidance_model = SwitchesRegressorDiscrete.load_from_checkpoint(os.path.join(cfg.general.trained_regressor_path))
+    guidance_model = SwitchesRegressorDiscrete.load_from_checkpoint(os.path.join(cfg.general.trained_regressor_path), **model_kwargs)
 
     model_kwargs['guidance_model'] = guidance_model
 

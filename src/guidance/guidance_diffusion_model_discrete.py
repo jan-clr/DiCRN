@@ -72,7 +72,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         self.train_metrics = train_metrics
         self.sampling_metrics = sampling_metrics
 
-        self.save_hyperparameters(ignore=[train_metrics, sampling_metrics])
+        self.save_hyperparameters(ignore=['train_metrics', 'sampling_metrics', 'dataset_infos'])
         self.visualization_tools = visualization_tools
         self.extra_features = extra_features
         self.domain_features = domain_features
