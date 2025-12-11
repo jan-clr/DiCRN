@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 from src import utils
 from src.metrics.abstract_metrics import TrainAbstractMetricsDiscrete, TrainAbstractMetrics
 
-from src.diffusion_model_discrete import DiscreteDenoisingDiffusion
+from src.diffusion_model_discrete_guidance import DiscreteDenoisingDiffusion
 from src.diffusion.extra_features import DummyExtraFeatures, ExtraFeatures
 
 
@@ -15,7 +15,7 @@ def main(cfg: DictConfig):
     print(cfg)
     from src.datasets.SWITCHESGraph import SWITCHESGraphDataModule, SWITCHESDatasetInfos
     from src.analysis.spectre_utils import SWITCHESSamplingMetrics
-    from src.analysis.visualization import NonMolecularVisualization, CRNVisualization
+    from src.analysis.visualization import CRNVisualization
 
 
     dataset_config = cfg["dataset"]
@@ -43,7 +43,7 @@ def main(cfg: DictConfig):
     print("Using GPU:", use_gpu)
     utils.create_folders(cfg)
 
-    model = DiscreteDenoisingDiffusion.load_from_checkpoint(cfg.checkpoint, cfg=cfg, dataset_infos=dataset_infos, train_metrics=train_metrics, sampling_metrics=sampling_metrics, visualization_tools=visualization_tools)
+    model = DiscreteDenoisingDiffusion.load_from_checkpoint(cfg.general.test_only, cfg=cfg, dataset_infos=dataset_infos, train_metrics=train_metrics, sampling_metrics=sampling_metrics, visualization_tools=visualization_tools)
 
     model.generate_samples()
 

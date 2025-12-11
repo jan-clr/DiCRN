@@ -8,6 +8,7 @@ from omegaconf import DictConfig, OmegaConf, open_dict
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 import warnings
+from pytorch_lightning.loggers import TensorBoardLogger
 
 
 import src.utils as utils
@@ -39,11 +40,12 @@ def get_resume(cfg, model_kwargs):
     cfg.general.final_model_samples_to_generate = final_samples_to_generate
     cfg.general.final_model_chains_to_save = final_chains_to_save
     cfg.train.batch_size = batch_size
+    cfg.general.log_dir = saved_cfg.general.log_dir
     cfg = update_config_with_new_keys(cfg, saved_cfg)
     return cfg, model
 
 
-@hydra.main(config_path='../../configs', config_name='config')
+@hydra.main(config_path='../../configs', config_name='config', version_base='1.1')
 def main(cfg: DictConfig):
     dataset_config = cfg["dataset"]
     datamodule = SWITCHESGraph.SWITCHESGraphDataModule(cfg, regressor=True)
@@ -76,26 +78,32 @@ def main(cfg: DictConfig):
 
     utils.create_folders(cfg)
 
+    print(cfg.general.log_dir)
+
     # load pretrained regressor
     # Fetch path to this file to get base path
     current_path = os.path.dirname(os.path.realpath(__file__))
     root_dir = current_path.split('outputs')[0]
 
-    guidance_model = SwitchesRegressorDiscrete.load_from_checkpoint(os.path.join(cfg.general.trained_regressor_path), **model_kwargs)
+    dataset_infos.output_dims = {'X': 0, 'E': 0, 'y': 2 if cfg.general.guidance_target == 'both' else 1}
+
+    guidance_model = SwitchesRegressorDiscrete.load_from_checkpoint(os.path.join(cfg.general.trained_regressor_path), train_metrics=train_metrics, sampling_metrics=sampling_metrics, dataset_infos=dataset_infos)
 
     model_kwargs['guidance_model'] = guidance_model
 
     if cfg.general.name == 'debug':
         print("[WARNING]: Run is called 'debug' -- it will run with fast_dev_run. ")
+    print(cfg.general.log_dir)
+    logger = TensorBoardLogger(save_dir=cfg.general.log_dir, name=cfg.general.name)
     trainer = Trainer(gradient_clip_val=cfg.train.clip_grad,
-                      gpus=cfg.general.gpus if torch.cuda.is_available() else 0,
-                      limit_test_batches=100,
+                      accelerator='gpu' if torch.cuda.is_available() and cfg.general.gpus > 0 else 'cpu',
+                      devices=cfg.general.gpus if torch.cuda.is_available() else 1,
+                      limit_test_batches=10,
                       max_epochs=cfg.train.n_epochs,
                       check_val_every_n_epoch=cfg.general.check_val_every_n_epochs,
                       fast_dev_run=cfg.general.name == 'debug',
-                      strategy='ddp' if cfg.general.gpus > 1 else None,        # TODO CHANGE with ray
                       enable_progress_bar=False,
-                      logger=[],
+                      logger=[] #logger,
                       )
 
     # add for conditional sampling

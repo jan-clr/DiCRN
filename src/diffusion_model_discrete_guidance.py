@@ -1,3 +1,5 @@
+import pickle
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -312,6 +314,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         self.sampling_metrics(samples, self.name, self.current_epoch, self.val_counter, test=True)
         self.sampling_metrics.reset()
         print("Done.")
+
+        self.save_samples(samples, file_path=os.path.join(os.getcwd(), f'property_list_{i}.pkl'))
 
         print("Generated graphs Saved. Done.")
         sampling_logs = self.sampling_metrics(samples, self.name, self.current_epoch, self.val_counter, test=True, local_rank=self.local_rank)
@@ -710,3 +714,18 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         extra_y = torch.cat((extra_y, t), dim=1)
 
         return utils.PlaceHolder(X=extra_X, E=extra_E, y=extra_y)
+
+    def save_samples(self, samples, file_path):
+        """ Save generated samples to disk. """
+        cond_results = {'nr_species': []}
+
+        # build histogram of nr_species
+        for sample in samples:
+            atom_types = sample[0]
+            nr_species = (atom_types == 0).sum().item()
+            cond_results['nr_species'].append(nr_species)
+
+        print(cond_results)
+        # pickle save cond_results
+        with open(file_path, 'wb') as f:
+            pickle.dump(cond_results, f)

@@ -1,8 +1,8 @@
+import pickle
 import numpy as np
 import torch
 import pytorch_lightning as pl
 import time
-import wandb
 import os
 import torch.nn as nn
 import torch.nn.functional as F
@@ -72,7 +72,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         self.train_metrics = train_metrics
         self.sampling_metrics = sampling_metrics
 
-        self.save_hyperparameters(ignore=['train_metrics', 'sampling_metrics', 'dataset_infos'])
+        #self.save_hyperparameters(ignore=['train_metrics', 'sampling_metrics', 'dataset_infos'])
         self.visualization_tools = visualization_tools
         self.extra_features = extra_features
         self.domain_features = domain_features
@@ -126,6 +126,9 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         # Extract properties
         target_properties = data.y.clone()
 
+        if self.cfg.general.target_value is not None:
+            target_properties = torch.tensor([[self.cfg.general.target_value]]).type_as(data.y)
+
         data.y = torch.zeros(data.y.shape[0], 0).type_as(data.y)
         print("TARGET PROPERTIES", target_properties)
 
@@ -139,7 +142,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                                     input_properties=target_properties)
         print(f'Sampling took {time.time() - start:.2f} seconds\n')
 
-        self.save_cond_samples(samples, target_properties, file_path=os.path.join(os.getcwd(), f'cond_smiles{i}.pkl')) # TODO: change file name
+        self.save_cond_samples(samples, target_properties, file_path=os.path.join(os.getcwd(), f'property_list_{i}.pkl')) # TODO: change file name
         # save conditional generated samples
         mae = self.cond_sample_metric(samples, target_properties)
         return {'mae': mae}
@@ -337,7 +340,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
         print('Conditional generation metric:')
         print(f'Epoch {self.current_epoch}: MAE: {mae}')
-        wandb.log({"val_epoch/conditional generation mae": mae,
+        self.log_dict({"val_epoch/conditional generation mae": mae,
                    'Valid crn': num_valid_molecules})
         return mae
 
@@ -365,7 +368,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             t_int = int(t[0].item() * 500)
             if t_int % 10 == 0:
                 print(f'Regressor MSE at step {t_int}: {mse.item()}')
-            wandb.log({'Guidance MSE': mse})
+            self.log('Guidance MSE', mse)
 
             # calculate gradient of mse with respect to x and e
             grad_x = torch.autograd.grad(mse, x_in, retain_graph=True)[0]
@@ -479,28 +482,19 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         return utils.PlaceHolder(X=extra_X, E=extra_E, y=extra_y)
 
     def save_cond_samples(self, samples, target, file_path):
-        cond_results = {'smiles': [], 'input_targets': target}
+        # TODO: implement for arbitrary target
+        cond_results = {'nr_species': [], 'input_targets': target}
         invalid = 0
         disconnected = 0
 
-        print("\tConverting conditionally generated molecules to SMILES ...")
+        # build histogram of nr_species
         for sample in samples:
-            mol = build_molecule_with_partial_charges(sample[0], sample[1], self.dataset_info.atom_decoder)
-            smile = mol2smiles(mol)
-            if smile is not None:
-                cond_results['smiles'].append(smile)
-                mol_frags = Chem.rdmolops.GetMolFrags(mol, asMols=True, sanitizeFrags=False)
-                if len(mol_frags) > 1:
-                    print("Disconnected molecule", mol, mol_frags)
-                    disconnected += 1
-            else:
-                print("Invalid molecule obtained.")
-                invalid += 1
+            atom_types = sample[0]
+            nr_species = (atom_types == 0).sum().item()
+            cond_results['nr_species'].append(nr_species)
 
-        print("Number of invalid molecules", invalid)
-        print("Number of disconnected molecules", disconnected)
-
-        # save samples
+        print(cond_results)
+        # pickle save cond_results
         with open(file_path, 'wb') as f:
             pickle.dump(cond_results, f)
 

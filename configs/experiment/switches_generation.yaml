@@ -4,7 +4,7 @@ general:
     gpus : 1
     wandb: 'disabled'
     resume: null            # If resume, path to ckpt file from outputs directory in main directory
-    test_only: null
+    test_only: ${oc.env:WORK}/dicrn/2025-12-08/17-09-07-switches_no_extra_features/checkpoints/switches_no_extra_features/last.ckpt
     check_val_every_n_epochs: 2
     sample_every_val: 4
     samples_to_generate: 100
