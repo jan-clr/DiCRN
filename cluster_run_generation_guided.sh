@@ -12,5 +12,5 @@ conda activate digress
 # Constants/Arguments
 runname=$1
 # Run training
-python guidance/main_guidance.py +experiment=guidance_nr_species.yaml dataset=switches
+python guidance/main_guidance.py +experiment=guidance_nr_species_cluster.yaml dataset=switches
 
