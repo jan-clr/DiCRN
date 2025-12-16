@@ -717,7 +717,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
     def save_samples(self, samples, file_path):
         """ Save generated samples to disk. """
-        cond_results = {'nr_species': []}
+        cond_results = {'nr_species': [], 'input_targets': [0.0]}
 
         # build histogram of nr_species
         for sample in samples:

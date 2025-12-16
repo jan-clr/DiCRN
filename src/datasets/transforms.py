@@ -166,6 +166,18 @@ def nr_species_target(graph: Data, replace=True):
     graph.y = features if graph.y is None or replace else torch.cat((graph.y, features), dim=1)
     return graph
 
+def avg_degree_target(graph: Data, replace=True):
+    """
+    Sets the target to be the average degree of the graph.
+    :param graph: The graph data object in torch_geometric format.
+    :return:
+    """
+    nx_graph = to_networkx(graph)
+    avg_degree = sum(dict(nx_graph.degree()).values()) / graph.num_nodes
+    features = torch.tensor([[avg_degree]], dtype=torch.float)
+    graph.y = features if graph.y is None or replace else torch.cat((graph.y, features), dim=1)
+    return graph
+
 
 def key_to_transform(key):
     if key == "degree" or key == "total_degree":

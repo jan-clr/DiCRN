@@ -110,7 +110,7 @@ class SwitchesRegressorDiscrete(pl.LightningModule):
                               in range(2)]
         self.test_loss_each = [MeanAbsoluteError().to(torch.device('cuda' if torch.cuda.is_available() else 'cpu')) for
                                i in range(2)]
-        self.target_dict = {0: "mu", 1: "homo"}
+        self.target_dict = {0: "nr_species", 1: "avg_degree"}
 
     def training_step(self, data, i):
         # input zero y to generate noised graphs
@@ -186,7 +186,7 @@ class SwitchesRegressorDiscrete(pl.LightningModule):
             self.best_val_mae = val_mae
         print('Val loss: %.4f \t Best val loss:  %.4f\n' % (val_mae, self.best_val_mae))
 
-        if self.args.general.guidance_target == 'both':
+        if self.args.general.guidance_target == 'species+degree':
             print('Val loss each target:')
             for i in range(2):
                 mae_each = self.val_loss_each[i].compute()

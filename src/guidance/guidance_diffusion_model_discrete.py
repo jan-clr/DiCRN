@@ -314,9 +314,11 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
     def cond_sample_metric(self, samples, input_properties):
         crns_nr_species = []
+        crns_avg_degree = []
 
         for sample in samples:
             crns_nr_species.append((sample[0] == 0).sum())
+            # TODO: compute avg degree
 
         num_valid_molecules = max(len(crns_nr_species), 1)
         print("Number of valid samples", num_valid_molecules)
@@ -328,13 +330,18 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         if self.args.general.guidance_target == 'nr_species':
             mae = self.cond_val(crns_nr_species.unsqueeze(1),
                                 input_properties.repeat(len(crns_nr_species), 1).cpu())
+        elif self.args.general.guidance_target == 'avg_degree':
+            raise NotImplementedError
+
+        elif self.args.general.guidance_target == 'species+degree':
+            raise NotImplementedError
 
         elif self.args.general.guidance_target == 'bistability':
             raise NotImplementedError
 
         elif self.args.general.guidance_target == 'both':
             raise NotImplementedError
-            properties = torch.hstack((mols_dipoles.unsqueeze(1), mols_homo.unsqueeze(1)))
+            properties = torch.hstack((crns_nr_species.unsqueeze(1), crns_avg_degree.unsqueeze(1)))
             mae = self.cond_val(properties,
                                 input_properties.repeat(len(mols_dipoles), 1).cpu())
 

@@ -121,6 +121,11 @@ class SWITCHESGraphDataModule(AbstractDataModule):
             transform = transforms.empty_target
         elif cfg.general.guidance_target == 'nr_species':
             transform = transforms.nr_species_target
+        elif cfg.general.guidance_target == 'avg_degree':
+            transform = transforms.avg_degree_target
+        elif cfg.general.guidance_target == 'species+degree':
+            avg_degree_concat = lambda graph: transforms.avg_degree_target(graph, replace=False)
+            transform = Compose([transforms.nr_species_target, avg_degree_concat])
 
         datasets = {'train': SWITCHESGraph(split='train', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path),
                     'val': SWITCHESGraph(split='val', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path),
