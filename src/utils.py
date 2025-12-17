@@ -242,3 +242,25 @@ class PlaceHolder:
         return self
 
 
+def sample_to_nx(sample):
+    node_types, edge_types = sample
+    A = edge_types.cpu().numpy()
+    # adjacency_matrices.append(A)
+
+    # nx_graph = nx.from_numpy_array(A, create_using=nx.DiGraph)
+    # networkx_graphs.append(nx_graph)
+
+    nx_graph = nx.DiGraph()
+
+    for i in range(len(node_types)):
+        if node_types[i] == -1:
+            continue
+        nx_graph.add_node(i, number=i, symbol=node_types[i], color_val=node_types[i], type=node_types[i])
+
+    rows, cols = np.where(A >= 1)
+    edges = zip(rows.tolist(), cols.tolist())
+    for edge in edges:
+        edge_type = A[edge[0]][edge[1]]
+        nx_graph.add_edge(edge[0], edge[1], color=float(edge_type), weight=3 * edge_type, stoichiometry=edge_type)
+
+    return nx_graph

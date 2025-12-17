@@ -85,7 +85,7 @@ def main(cfg: DictConfig):
     current_path = os.path.dirname(os.path.realpath(__file__))
     root_dir = current_path.split('outputs')[0]
 
-    dataset_infos.output_dims = {'X': 0, 'E': 0, 'y': 2 if cfg.general.guidance_target == 'both' else 1}
+    dataset_infos.output_dims = {'X': 0, 'E': 0, 'y': 2 if cfg.general.guidance_target == 'species+degree' else 1}
 
     guidance_model = SwitchesRegressorDiscrete.load_from_checkpoint(os.path.join(cfg.general.trained_regressor_path), train_metrics=train_metrics, sampling_metrics=sampling_metrics, dataset_infos=dataset_infos)
 

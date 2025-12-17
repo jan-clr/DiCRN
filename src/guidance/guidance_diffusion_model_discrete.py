@@ -127,7 +127,9 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         target_properties = data.y.clone()
 
         if self.cfg.general.target_value is not None:
-            target_properties = torch.tensor([[self.cfg.general.target_value]]).type_as(data.y)
+            target_properties = torch.tensor([[self.cfg.general.target_value]]).type_as(data.y) if len(self.cfg.target_value) == 1 else \
+                                torch.tensor([[self.cfg.general.target_value[0]],
+                                               [self.cfg.general.target_value[1]]]).type_as(data.y)
 
         data.y = torch.zeros(data.y.shape[0], 0).type_as(data.y)
         print("TARGET PROPERTIES", target_properties)
@@ -315,10 +317,14 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
     def cond_sample_metric(self, samples, input_properties):
         crns_nr_species = []
         crns_avg_degree = []
+        crns_propensity = []
 
         for sample in samples:
             crns_nr_species.append((sample[0] == 0).sum())
-            # TODO: compute avg degree
+            nx_graph = utils.sample_to_nx(sample)
+            avg_degree = sum(dict(nx_graph.degree()).values()) / nx_graph.number_of_nodes()
+            crns_avg_degree.append(avg_degree)
+
 
         num_valid_molecules = max(len(crns_nr_species), 1)
         print("Number of valid samples", num_valid_molecules)
@@ -326,17 +332,19 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         self.num_total += len(samples)
 
         crns_nr_species = torch.FloatTensor(crns_nr_species)
+        crns_avg_degree = torch.FloatTensor(crns_nr_species)
 
         if self.args.general.guidance_target == 'nr_species':
             mae = self.cond_val(crns_nr_species.unsqueeze(1),
                                 input_properties.repeat(len(crns_nr_species), 1).cpu())
         elif self.args.general.guidance_target == 'avg_degree':
-            raise NotImplementedError
+            mae = self.cond_val(crns_avg_degree.unsqueeze(1), input_properties.repeat(len(crns_avg_degree), 1).cpu())
 
         elif self.args.general.guidance_target == 'species+degree':
-            raise NotImplementedError
+            properties = torch.hstack((crns_nr_species.unsqueeze(1), crns_avg_degree.unsqueeze(1)))
+            mae = self.cond_val(properties, input_properties.repeat(len(properties), 1).cpu())
 
-        elif self.args.general.guidance_target == 'bistability':
+        elif self.args.general.guidance_target == 'propensity':
             raise NotImplementedError
 
         elif self.args.general.guidance_target == 'both':
