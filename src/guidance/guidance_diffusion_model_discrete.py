@@ -127,7 +127,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         target_properties = data.y.clone()
 
         if self.cfg.general.target_value is not None:
-            target_properties = torch.tensor([[self.cfg.general.target_value]]).type_as(data.y) if len(self.cfg.target_value) == 1 else \
+            target_properties = torch.tensor([[self.cfg.general.target_value]]).type_as(data.y) if len(self.cfg.general.target_value) == 1 else \
                                 torch.tensor([[self.cfg.general.target_value[0]],
                                                [self.cfg.general.target_value[1]]]).type_as(data.y)
 
