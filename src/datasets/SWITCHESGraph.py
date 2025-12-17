@@ -119,6 +119,8 @@ class SWITCHESGraphDataModule(AbstractDataModule):
         transform = None
         if cfg.general.guidance_target is None:
             transform = transforms.empty_target
+        elif cfg.general.guidance_target == 'propensity':
+            transform = transforms.propensity_target
         elif cfg.general.guidance_target == 'nr_species':
             transform = transforms.nr_species_target
         elif cfg.general.guidance_target == 'avg_degree':

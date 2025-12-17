@@ -179,6 +179,18 @@ def avg_degree_target(graph: Data, replace=True):
     return graph
 
 
+def propensity_target(graph: Data, replace=True):
+    """
+    Sets the target to be the propensity (number of reactions / number of species) of the graph.
+    :param graph: The graph data object in torch_geometric format.
+    :return:
+    """
+    propensity = graph.y
+    features = torch.tensor([[propensity]], dtype=torch.float)
+    graph.y = features if graph.y is None or replace else torch.cat((graph.y, features), dim=1)
+    return graph
+
+
 def key_to_transform(key):
     if key == "degree" or key == "total_degree":
         return total_degree_feature
