@@ -127,9 +127,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         target_properties = data.y.clone()
 
         if self.cfg.general.target_value is not None:
-            target_properties = torch.tensor([[self.cfg.general.target_value]]).type_as(data.y) if len(self.cfg.general.target_value) == 1 else \
-                                torch.tensor([[self.cfg.general.target_value[0]],
-                                               [self.cfg.general.target_value[1]]]).type_as(data.y)
+            target_properties = torch.tensor([[self.cfg.general.target_value]]).type_as(data.y) if isinstance(self.cfg.general.target_value, float) else \
+                                torch.tensor([self.cfg.general.target_value[1]]).type_as(data.y)
 
         data.y = torch.zeros(data.y.shape[0], 0).type_as(data.y)
         print("TARGET PROPERTIES", target_properties)
@@ -377,6 +376,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
             # normalize target
             target = target.type_as(x_in)
+
+            print(pred.y.shape, target.shape)
 
             mse = loss(pred.y, target.repeat(pred.y.size(0), 1))
 
