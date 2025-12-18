@@ -35,12 +35,16 @@ def get_resume(cfg, model_kwargs):
     batch_size = cfg.train.batch_size
     model = DiscreteDenoisingDiffusion.load_from_checkpoint(resume, **model_kwargs)
     cfg = model.cfg
+
+    cfg.general.log_dir = saved_cfg.general.log_dir
+    # this is necessary to avoid interpolation errors when logging hyperparameters in case you have used environment variables in the config file during training that are not defined now
+    model.save_hyperparameters({'cfg': cfg})
+
     cfg.general.test_only = resume
     cfg.general.name = name
     cfg.general.final_model_samples_to_generate = final_samples_to_generate
     cfg.general.final_model_chains_to_save = final_chains_to_save
     cfg.train.batch_size = batch_size
-    cfg.general.log_dir = saved_cfg.general.log_dir
     cfg = update_config_with_new_keys(cfg, saved_cfg)
     return cfg, model
 
@@ -78,7 +82,6 @@ def main(cfg: DictConfig):
 
     utils.create_folders(cfg)
 
-    print(cfg.general.log_dir)
 
     # load pretrained regressor
     # Fetch path to this file to get base path
@@ -93,7 +96,6 @@ def main(cfg: DictConfig):
 
     if cfg.general.name == 'debug':
         print("[WARNING]: Run is called 'debug' -- it will run with fast_dev_run. ")
-    print(cfg.general.log_dir)
     logger = TensorBoardLogger(save_dir=cfg.general.log_dir, name=cfg.general.name)
     trainer = Trainer(gradient_clip_val=cfg.train.clip_grad,
                       accelerator='gpu' if torch.cuda.is_available() and cfg.general.gpus > 0 else 'cpu',
@@ -103,7 +105,7 @@ def main(cfg: DictConfig):
                       check_val_every_n_epoch=cfg.general.check_val_every_n_epochs,
                       fast_dev_run=cfg.general.name == 'debug',
                       enable_progress_bar=False,
-                      logger=[] #logger,
+                      logger=logger,
                       )
 
     # add for conditional sampling

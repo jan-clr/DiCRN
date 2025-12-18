@@ -1,6 +1,9 @@
 import os
 from copy import deepcopy
 from typing import Optional, Union, Dict
+
+import networkx as nx
+import numpy as np
 import torch_geometric.utils
 from omegaconf import OmegaConf, open_dict
 import pytorch_lightning as pl

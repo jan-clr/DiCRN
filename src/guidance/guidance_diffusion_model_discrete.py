@@ -128,7 +128,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
         if self.cfg.general.target_value is not None:
             target_properties = torch.tensor([[self.cfg.general.target_value]]).type_as(data.y) if isinstance(self.cfg.general.target_value, float) else \
-                                torch.tensor([self.cfg.general.target_value[1]]).type_as(data.y)
+                                torch.tensor([self.cfg.general.target_value]).type_as(data.y)
 
         data.y = torch.zeros(data.y.shape[0], 0).type_as(data.y)
         print("TARGET PROPERTIES", target_properties)
@@ -377,8 +377,6 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             # normalize target
             target = target.type_as(x_in)
 
-            print(pred.y.shape, target.shape)
-
             mse = loss(pred.y, target.repeat(pred.y.size(0), 1))
 
             t_int = int(t[0].item() * 500)
@@ -499,7 +497,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
     def save_cond_samples(self, samples, target, file_path):
         # TODO: implement for arbitrary target
-        cond_results = {'nr_species': [], 'input_targets': target}
+        cond_results = {'nr_species': [], 'avg_degree': [], 'input_targets': target}
         invalid = 0
         disconnected = 0
 
@@ -507,7 +505,10 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         for sample in samples:
             atom_types = sample[0]
             nr_species = (atom_types == 0).sum().item()
+            nx_graph = utils.sample_to_nx(sample)
+            avg_degree = sum(dict(nx_graph.degree()).values()) / nx_graph.number_of_nodes()
             cond_results['nr_species'].append(nr_species)
+            cond_results['avg_degree'].append(avg_degree)
 
         print(cond_results)
         # pickle save cond_results
