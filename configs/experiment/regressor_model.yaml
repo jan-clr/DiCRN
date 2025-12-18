@@ -4,7 +4,7 @@ general:
     gpus : 1
     wandb: 'disabled'
     remove_h: True
-    guidance_target: 'nr_species'                    # 'mu', 'homo', 'both', 'no-target'
+    guidance_target: 'propensity'                    # 'mu', 'homo', 'both', 'no-target'
 train:
     n_epochs: 100
     batch_size: 512
