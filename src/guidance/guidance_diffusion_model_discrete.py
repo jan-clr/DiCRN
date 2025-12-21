@@ -498,8 +498,6 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
     def save_cond_samples(self, samples, target, file_path):
         # TODO: implement for arbitrary target
         cond_results = {'nr_species': [], 'avg_degree': [], 'input_targets': target}
-        invalid = 0
-        disconnected = 0
 
         # build histogram of nr_species
         for sample in samples:

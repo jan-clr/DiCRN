@@ -717,15 +717,20 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
     def save_samples(self, samples, file_path):
         """ Save generated samples to disk. """
-        cond_results = {'nr_species': [], 'input_targets': [0.0]}
+        cond_results = {'nr_species': [], 'avg_degree': [], 'input_targets': [0.0]}
 
         # build histogram of nr_species
         for sample in samples:
             atom_types = sample[0]
             nr_species = (atom_types == 0).sum().item()
+            nx_graph = utils.sample_to_nx(sample)
+            avg_degree = sum(dict(nx_graph.degree()).values()) / nx_graph.number_of_nodes()
             cond_results['nr_species'].append(nr_species)
+            cond_results['avg_degree'].append(avg_degree)
 
         print(cond_results)
         # pickle save cond_results
         with open(file_path, 'wb') as f:
             pickle.dump(cond_results, f)
+
+        return cond_results
