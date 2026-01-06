@@ -299,7 +299,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         while samples_left_to_generate > 0:
             print(f'Samples left to generate: {samples_left_to_generate}/'
                        f'{self.cfg.general.final_model_samples_to_generate}', end='')
-            bs = 1 #2 * self.cfg.train.batch_size)
+            bs = 2 * self.cfg.train.batch_size
             to_generate = min(samples_left_to_generate, bs)
             to_save = min(samples_left_to_save, bs)
             chains_save = min(chains_left_to_save, bs)
@@ -315,7 +315,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         self.sampling_metrics.reset()
         print("Done.")
 
-        self.save_samples(samples, file_path=os.path.join(os.getcwd(), f'property_list_{i}.pkl'))
+        self.save_samples(samples, file_path=os.path.join(os.getcwd(), f'property_list.pkl'))
 
         print("Generated graphs Saved. Done.")
         sampling_logs = self.sampling_metrics(samples, self.name, self.current_epoch, self.val_counter, test=True, local_rank=self.local_rank)

@@ -4,10 +4,10 @@ general:
     gpus : 1
     wandb: 'disabled'
     resume: null            # If resume, path to ckpt file from outputs directory in main directory
-    test_only: ${oc.env:WORK}/dicrn/2025-12-08/17-09-07-switches_no_extra_features/checkpoints/switches_no_extra_features/last.ckpt
+    test_only: /Volumes/PortableSSD/crngen/2025-12-08/17-09-07-switches_no_extra_features/checkpoints/switches_no_extra_features/last.ckpt
     check_val_every_n_epochs: 2
     sample_every_val: 4
-    samples_to_generate: 100
+    samples_to_generate: 30
     samples_to_save: 9
     chains_to_save: 1
     final_model_samples_to_generate: 100
@@ -15,7 +15,7 @@ general:
     final_model_chains_to_save: 20
 train:
     n_epochs: 100
-    batch_size: 256
+    batch_size: 100
     save_model: True
 model:
     diffusion_steps: 1000
