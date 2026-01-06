@@ -12,5 +12,5 @@ conda activate digress
 # Constants/Arguments
 runname=$1
 # Run training
-python generate_samples.py +experiment=switches.yaml dataset=switches
+python generate_samples.py +experiment=switches_generation.yaml dataset=switches
 
