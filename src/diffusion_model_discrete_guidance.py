@@ -311,7 +311,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             chains_left_to_save -= chains_save
         print("Computing sampling metrics...")
         self.sampling_metrics.reset()
-        self.sampling_metrics(samples, self.name, self.current_epoch, self.val_counter, test=True)
+        self.sampling_metrics(samples, self.name, self.current_epoch, self.val_counter, test=True, local_rank=self.local_rank)
         self.sampling_metrics.reset()
         print("Done.")
 
