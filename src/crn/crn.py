@@ -88,12 +88,25 @@ class CRN:
 
                 mr1.add_metabolites({es_complex: 1})
 
+                mr1_reverse = MassReaction('reaction_' + reaction.to_identifier() + "_unbinding")
+                mr1_reverse.reversible = False
+                mr1_reverse.forward_rate_constant = reaction.k_m - (reaction.k_cat / reaction.k_m) # TODO: check if this is correct
+                mr1_reverse.add_metabolites({es_complex: -1})
+                mr1_reverse.add_metabolites({self.mass_metabolites[reaction.reactants[0]]: 1})
+                mr1_reverse.add_metabolites({self.mass_metabolites[reaction.catalyst]: 1})
+
+                self.mass_reactions.append(mr1_reverse)
+
                 # catalysis
                 mr2 = MassReaction('reaction_' + reaction.to_identifier() + "_product_formation")
                 mr2.reversible = False
                 mr2.forward_rate_constant = reaction.k_cat
                 mr2.add_metabolites({es_complex: -1})
                 if reaction.catalyst == reaction.reactants[0]:
+                    mr2.add_metabolites({self.mass_metabolites[reaction.reactants[0]]: 1})
+                    mr2.add_metabolites({self.mass_metabolites[reaction.products[0]]: reaction.stoichiometry[1]})
+
+                elif reaction.catalyst == reaction.products[0]:
                     mr2.add_metabolites({self.mass_metabolites[reaction.products[0]]: reaction.stoichiometry[1] + 1})
                 else:
                     mr2.add_metabolites({self.mass_metabolites[reaction.products[0]]: reaction.stoichiometry[1]})
