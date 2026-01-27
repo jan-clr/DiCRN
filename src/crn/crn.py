@@ -63,12 +63,12 @@ class CRN:
                 mr1.add_metabolites({self.mass_metabolites[reactant]: reaction.stoichiometry[i] for i, reactant in enumerate(reaction.reactants)})
                 mr1.add_metabolites({self.mass_metabolites[product]: reaction.stoichiometry[i + len(reaction.reactants)] for i, product in enumerate(reaction.products)})
                 self.mass_reactions.append(mr1)
-                mr2 = MassReaction('reaction_' + reaction.to_identifier() + "_reverse")
-                mr2.reversible = False
-                mr2.forward_rate_constant = reaction.k_b
-                mr2.add_metabolites({self.mass_metabolites[product]: -reaction.stoichiometry[i + len(reaction.reactants)] for i, product in enumerate(reaction.products)})
-                mr2.add_metabolites({self.mass_metabolites[reactant]: -reaction.stoichiometry[i] for i, reactant in enumerate(reaction.reactants)})
-                self.mass_reactions.append(mr2)
+                #mr2 = MassReaction('reaction_' + reaction.to_identifier() + "_reverse")
+                #mr2.reversible = False
+                #mr2.forward_rate_constant = reaction.k_b
+                #mr2.add_metabolites({self.mass_metabolites[product]: -reaction.stoichiometry[i# + len(reaction.reactants)] for i, product in enumerate(reaction.products)})
+                #mr2.add_metabolites({self.mass_metabolites[reactant]: -reaction.stoichiometry[i] for i, reactant in enumerate(reaction.reactants)})
+                #self.mass_reactions.append(mr2)
             else:
                 # substrate enzyme binding
                 mr1 = MassReaction('reaction_' + reaction.to_identifier() + "_binding")
@@ -88,14 +88,14 @@ class CRN:
 
                 mr1.add_metabolites({es_complex: 1})
 
-                mr1_reverse = MassReaction('reaction_' + reaction.to_identifier() + "_unbinding")
-                mr1_reverse.reversible = False
-                mr1_reverse.forward_rate_constant = reaction.k_m - (reaction.k_cat / reaction.k_m) # TODO: check if this is correct
-                mr1_reverse.add_metabolites({es_complex: -1})
-                mr1_reverse.add_metabolites({self.mass_metabolites[reaction.reactants[0]]: 1})
-                mr1_reverse.add_metabolites({self.mass_metabolites[reaction.catalyst]: 1})
+                #mr1_reverse = MassReaction('reaction_' + reaction.to_identifier() + #"_unbinding")
+                #mr1_reverse.reversible = False
+                #mr1_reverse.forward_rate_constant = reaction.k_m - (reaction.k_cat / #reaction.k_m) # TODO: check if this is correct
+                #mr1_reverse.add_metabolites({es_complex: -1})
+                #mr1_reverse.add_metabolites({self.mass_metabolites[reaction.reactants[0]]: 1})
+                #mr1_reverse.add_metabolites({self.mass_metabolites[reaction.catalyst]: 1})
 
-                self.mass_reactions.append(mr1_reverse)
+                #self.mass_reactions.append(mr1_reverse)
 
                 # catalysis
                 mr2 = MassReaction('reaction_' + reaction.to_identifier() + "_product_formation")
