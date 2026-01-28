@@ -143,7 +143,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                                     input_properties=target_properties)
         print(f'Sampling took {time.time() - start:.2f} seconds\n')
 
-        self.save_cond_samples(samples, target_properties, file_path=os.path.join(os.getcwd(), f'property_list_{i}.pkl')) # TODO: change file name
+        self.save_cond_samples(samples, target_properties, file_path=os.path.join(os.getcwd(), f'generated_samples_{self.name}_{i}')) # TODO: change file name
         # save conditional generated samples
         mae = self.cond_sample_metric(samples, target_properties)
         return {'mae': mae}
@@ -344,13 +344,11 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             mae = self.cond_val(properties, input_properties.repeat(len(properties), 1).cpu())
 
         elif self.args.general.guidance_target == 'propensity':
-            raise NotImplementedError
+            # We don't want to compute propensity during generation, so we just put out a dummy value here
+            mae = self.cond_val(torch.zeros((len(samples), 1)), input_properties.repeat(len(samples), 1).cpu())
 
         elif self.args.general.guidance_target == 'both':
             raise NotImplementedError
-            properties = torch.hstack((crns_nr_species.unsqueeze(1), crns_avg_degree.unsqueeze(1)))
-            mae = self.cond_val(properties,
-                                input_properties.repeat(len(mols_dipoles), 1).cpu())
 
         print('Conditional generation metric:')
         print(f'Epoch {self.current_epoch}: MAE: {mae}')
@@ -498,19 +496,26 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
     def save_cond_samples(self, samples, target, file_path):
         # TODO: implement for arbitrary target
         cond_results = {'nr_species': [], 'avg_degree': [], 'input_targets': target}
+        graphs = []
 
         # build histogram of nr_species
         for sample in samples:
             atom_types = sample[0]
             nr_species = (atom_types == 0).sum().item()
             nx_graph = utils.sample_to_nx(sample)
+            graphs.append(nx_graph)
             avg_degree = sum(dict(nx_graph.degree()).values()) / nx_graph.number_of_nodes()
             cond_results['nr_species'].append(nr_species)
             cond_results['avg_degree'].append(avg_degree)
 
         print(cond_results)
         # pickle save cond_results
-        with open(file_path, 'wb') as f:
+        property_file = file_path + '_properties.pkl'
+        with open(property_file, 'wb') as f:
             pickle.dump(cond_results, f)
+
+        # save graphs
+        with open(file_path + '_graphs.pkl', 'wb') as f:
+            pickle.dump(graphs, f)
 
         return cond_results
