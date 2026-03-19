@@ -181,12 +181,48 @@ def avg_degree_target(graph: Data, replace=True):
 
 def propensity_target(graph: Data, replace=True):
     """
-    Sets the target to be the propensity (number of reactions / number of species) of the graph.
+    Sets the target to be the propensity of the graph.
     :param graph: The graph data object in torch_geometric format.
     :return:
     """
     propensity = graph.y
     features = torch.tensor([[propensity]], dtype=torch.float)
+    graph.y = features if graph.y is None or replace else torch.cat((graph.y, features), dim=1)
+    return graph
+
+
+def sqrt_propensity_target(graph: Data, replace=True):
+    """
+    Sets the target to be the square root of the propensity (number of reactions / number of species) of the graph.
+    :param graph: The graph data object in torch_geometric format.
+    :return:
+    """
+    propensity = graph.y
+    features = torch.tensor([[propensity ** 0.5]], dtype=torch.float)
+    graph.y = features if graph.y is None or replace else torch.cat((graph.y, features), dim=1)
+    return graph
+
+
+def power_propensity_target(graph: Data, replace=True, k=0.5):
+    """
+    Sets the target to be the square root of the propensity (number of reactions / number of species) of the graph.
+    :param graph: The graph data object in torch_geometric format.
+    :return:
+    """
+    propensity = graph.y
+    features = torch.tensor([[propensity ** k]], dtype=torch.float)
+    graph.y = features if graph.y is None or replace else torch.cat((graph.y, features), dim=1)
+    return graph
+
+
+def rescaled_log_propensity_target(graph: Data, replace=True, k=1.0):
+    """
+    Sets the target to be the logarithm of the propensity (number of reactions / number of species) of the graph.
+    :param graph: The graph data object in torch_geometric format.
+    :return:
+    """
+    propensity = graph.y
+    features = torch.tensor([[np.log(k * propensity + 1) / np.log(k + 1)]], dtype=torch.float)
     graph.y = features if graph.y is None or replace else torch.cat((graph.y, features), dim=1)
     return graph
 
@@ -220,6 +256,34 @@ def key_to_transform(key):
         return in_degree_normalized
     elif key == "out_degree_norm":
         return out_degree_normalized
+    elif key == "sqrt_propensity_target":
+        return sqrt_propensity_target
+    elif key.startswith("rescaled_log_propensity_target"):
+        k = 1.0
+        if 'target_' in key:
+            try:
+                k = float(key.split('_')[-1])
+            except ValueError:
+                raise ValueError(
+                    f"Invalid k value in transform key {key}. Expected format 'rescaled_log_propensity_target_k' where k is a float.")
+
+        def rescaled_log_propensity_target_k(graph: Data, replace=True):
+            return rescaled_log_propensity_target(graph, replace=replace, k=k)
+
+        return rescaled_log_propensity_target_k
+    elif key.startswith("power_propensity_target"):
+        k = 0.5
+        if 'target_' in key:
+            try:
+                k = float(key.split('_')[-1])
+            except ValueError:
+                raise ValueError(
+                    f"Invalid k value in transform key {key}. Expected format 'power_propensity_target_k' where k is a float.")
+
+        def power_propensity_target_k(graph: Data, replace=True):
+            return power_propensity_target(graph, replace=replace, k=k)
+
+        return power_propensity_target_k
     else:
         raise ValueError(f"Unknown transform key {key}.")
 

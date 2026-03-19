@@ -121,6 +121,12 @@ class SWITCHESGraphDataModule(AbstractDataModule):
             transform = transforms.empty_target
         elif cfg.general.guidance_target == 'propensity':
             transform = transforms.propensity_target
+        elif cfg.general.guidance_target == 'sqrt_propensity':
+            transform = transforms.sqrt_propensity_target
+        elif cfg.general.guidance_target == 'cube_root_propensity':
+            transform = lambda g: transforms.power_propensity_target(g, replace=True, k=1/3)
+        elif cfg.general.guidance_target == 'log_propensity':
+            transform = transforms.rescaled_log_propensity_target
         elif cfg.general.guidance_target == 'nr_species':
             transform = transforms.nr_species_target
         elif cfg.general.guidance_target == 'avg_degree':
