@@ -4,6 +4,7 @@ from torch_geometric.utils import to_networkx
 import torch_geometric.transforms as T
 from networkx import Graph
 import networkx as nx
+import numpy as np
 import torch
 from torchvision.transforms import Compose
 
@@ -223,6 +224,18 @@ def rescaled_log_propensity_target(graph: Data, replace=True, k=1.0):
     """
     propensity = graph.y
     features = torch.tensor([[np.log(k * propensity + 1) / np.log(k + 1)]], dtype=torch.float)
+    graph.y = features if graph.y is None or replace else torch.cat((graph.y, features), dim=1)
+    return graph
+
+
+def binary_propensity_target(graph: Data, replace=True):
+    """
+    Sets the target to be 1 if the propensity is greater than 0 and 0 otherwise.
+    :param graph: The graph data object in torch_geometric format.
+    :return:
+    """
+    propensity = graph.y
+    features = torch.tensor([[1.0 if propensity > 0 else 0.0]], dtype=torch.float)
     graph.y = features if graph.y is None or replace else torch.cat((graph.y, features), dim=1)
     return graph
 
