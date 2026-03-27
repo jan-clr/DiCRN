@@ -1,6 +1,6 @@
 # @package _global_
 general:
-    name : 'guidance_avg_degree'
+    name : 'guidance'
     gpus : 1
     wandb: 'disabled'
     sample_every_val: 1
@@ -12,9 +12,9 @@ general:
     number_chain_steps: 10        # Number of frames in each gif
     # THIS SHOULD BE THE SAME AS THE REGRESSION MODEL THAT IS LOADED
     guidance_target: 'avg_degree'            # 'mu', 'homo', 'both', 'no-target'
-    target_value: 4.0
-    trained_regressor_path: ${oc.env:WORK}/dicrn/2025-12-16/19-49-08-regressor/checkpoints/regressor/last.ckpt
-    test_only: ${oc.env:WORK}/dicrn/2025-12-08/17-09-07-switches_no_extra_features/checkpoints/switches_no_extra_features/last.ckpt
+    target_value: 2.0
+    trained_regressor_path: ${oc.env:WORK}/dicrn/regressors/regressor-avg_degree-2026-03-23-17-45-42/checkpoints/regressor/last.ckpt
+    test_only: ${oc.env:WORK}/dicrn/2026-01-27/16-21-11-switches_reduced_reactions/checkpoints/switches_reduced_reactions/last.ckpt
 train:
     batch_size: 1               # Needs to be 1 for testing
     save_model: False
@@ -26,3 +26,6 @@ guidance:
     n_experiments: 2          # Change to 100
 dataset:
     remove_h: True
+hydra:
+  run:
+    dir: ${oc.env:WORK}/dicrn/generation/${general.name}-${general.guidance_target}-${general.target_value}-${now:%Y-%m-%d}-${now:%H-%M-%S}

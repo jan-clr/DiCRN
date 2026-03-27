@@ -11,6 +11,13 @@ conda activate digress
 
 # Constants/Arguments
 runname=$1
+target_value=$2
+experiment=${3}
+
+echo $experiment
+echo $runname
+echo $target_value
+
 # Run training
-python guidance/main_guidance.py +experiment=guidance_species_degree_cluster.yaml dataset=switches
+python guidance/main_guidance.py +experiment=$experiment dataset=switches "general.target_value=$target_value"
 

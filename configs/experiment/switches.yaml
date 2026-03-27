@@ -1,6 +1,6 @@
 # @package _global_
 general:
-    name : 'switches_no_extra_features'
+    name : 'switches_reduced_reactions'
     gpus : 1
     wandb: 'disabled'
     resume: null            # If resume, path to ckpt file from outputs directory in main directory

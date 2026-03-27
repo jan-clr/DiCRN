@@ -136,8 +136,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         start = time.time()
 
         ident = 0
-        samples = self.sample_batch(batch_id=ident, batch_size=10, num_nodes=None,
-                                    save_final=10,
+        samples = self.sample_batch(batch_id=ident, batch_size=100, num_nodes=None,
+                                    save_final=100,
                                     keep_chain=1,
                                     number_chain_steps=self.number_chain_steps,
                                     input_properties=target_properties)
@@ -343,7 +343,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             properties = torch.hstack((crns_nr_species.unsqueeze(1), crns_avg_degree.unsqueeze(1)))
             mae = self.cond_val(properties, input_properties.repeat(len(properties), 1).cpu())
 
-        elif self.args.general.guidance_target == 'propensity':
+        elif 'propensity' in self.args.general.guidance_target:
             # We don't want to compute propensity during generation, so we just put out a dummy value here
             mae = self.cond_val(torch.zeros((len(samples), 1)), input_properties.repeat(len(samples), 1).cpu())
 

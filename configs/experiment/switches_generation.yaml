@@ -1,17 +1,17 @@
 # @package _global_
 general:
-    name : 'switches_no_extra_features'
+    name : 'switches_generation_uncond'
     gpus : 1
     wandb: 'disabled'
     resume: null            # If resume, path to ckpt file from outputs directory in main directory
-    test_only: /Volumes/PortableSSD/crngen/2025-12-08/17-09-07-switches_no_extra_features/checkpoints/switches_no_extra_features/last.ckpt
+    test_only: ${oc.env:WORK}/dicrn/2026-01-27/16-21-11-switches_reduced_reactions/checkpoints/switches_reduced_reactions/last.ckpt
     check_val_every_n_epochs: 2
     sample_every_val: 4
     samples_to_generate: 30
     samples_to_save: 9
     chains_to_save: 1
-    final_model_samples_to_generate: 100
-    final_model_samples_to_save: 100
+    final_model_samples_to_generate: 1000
+    final_model_samples_to_save: 1000
     final_model_chains_to_save: 20
 train:
     n_epochs: 100
@@ -29,3 +29,6 @@ model:
 
     # The dimensions should satisfy dx % n_head == 0
     hidden_dims: { 'dx': 256, 'de': 64, 'dy': 64, 'n_head': 8, 'dim_ffX': 256, 'dim_ffE': 64, 'dim_ffy': 256 }
+hydra:
+  run:
+    dir: ${oc.env:WORK}/dicrn/generation/${general.name}-${now:%Y-%m-%d}-${now:%H-%M-%S}
