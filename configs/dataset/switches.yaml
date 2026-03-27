@@ -1,3 +1,4 @@
 name: 'switches'
 remove_h: null
 datadir: 'data/switches/'
+reduced_reactions: True

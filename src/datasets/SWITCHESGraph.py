@@ -16,7 +16,7 @@ from src.datasets.abstract_dataset import AbstractDataModule, AbstractDatasetInf
 
 
 class SWITCHESGraph(InMemoryDataset):
-    def __init__(self, root, transform=None, pre_transform=None, over_sampling=False, under_sampling=False, neg_ratio=1.0, split="train", filter_threshold=0.0, resample_threshold=0.0):
+    def __init__(self, root, transform=None, pre_transform=None, over_sampling=False, under_sampling=False, neg_ratio=1.0, split="train", filter_threshold=0.0, resample_threshold=0.0, reduced_reactions=True):
         self.over_sampling = over_sampling
         self.under_sampling = under_sampling
         self.neg_ratio = neg_ratio
@@ -26,6 +26,7 @@ class SWITCHESGraph(InMemoryDataset):
         self.pre_transform = compose_transforms(pre_transform) if pre_transform is not None else None
         self.filter_threshold = filter_threshold
         self.resample_threshold = resample_threshold
+        self.reduced_reactions = reduced_reactions
         super(SWITCHESGraph, self).__init__(root=root, transform=transform, pre_transform=self.pre_transform)
         if over_sampling and under_sampling:
             raise ValueError("Both over- and under-sampling at the same time is not supported.")
@@ -49,6 +50,9 @@ class SWITCHESGraph(InMemoryDataset):
             file_name += f"_over_sampling_{self.neg_ratio}"
         elif self.under_sampling:
             file_name += f"_under_sampling_{self.neg_ratio}"
+
+        if self.reduced_reactions:
+            file_name += f"_reduced_reactions"
 
         split = ''
         if self.split == 'test':
@@ -83,7 +87,6 @@ class SWITCHESGraph(InMemoryDataset):
             # Filter out samples with propensity greater than 0 but less than the threshold
             df = df[(df['Propensity'] > self.filter_threshold) | (df['Propensity'] == 0)]
 
-
         if self.under_sampling:
             positive_samples = df[df['Propensity'] > self.resample_threshold]
             nr_negative_samples = int(len(positive_samples) * self.neg_ratio)
@@ -95,7 +98,7 @@ class SWITCHESGraph(InMemoryDataset):
         loop = tqdm(df.iterrows(), total=len(df), desc='Converting csv into graph data')
         for i, row in loop:
             signature = row['Signature'].replace('|', '_')[1:-1]
-            crn = CRN.from_signature(signature)
+            crn = CRN.from_signature(signature, self.reduced_reactions)
             data = crn.to_graph()
             data.y = row['Propensity']
             data.model_no = row['Model_No.']

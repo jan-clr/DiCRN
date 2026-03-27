@@ -1,6 +1,6 @@
 # @package _global_
 general:
-    name : 'switches_reduced_reactions'
+    name : 'switches'
     gpus : 1
     wandb: 'disabled'
     resume: null            # If resume, path to ckpt file from outputs directory in main directory
@@ -29,3 +29,8 @@ model:
 
     # The dimensions should satisfy dx % n_head == 0
     hidden_dims: { 'dx': 256, 'de': 64, 'dy': 64, 'n_head': 8, 'dim_ffX': 256, 'dim_ffE': 64, 'dim_ffy': 256 }
+hydra:
+    job:
+        chdir: True
+    run:
+        dir: ${oc.env:WORK}/dicrn/base/${general.name}-${now:%Y-%m-%d}-${now:%H-%M-%S}

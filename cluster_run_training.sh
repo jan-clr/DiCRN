@@ -10,8 +10,6 @@ cd src || exit 1
 conda activate digress
 
 # Constants/Arguments
-outdir=$WORK/gnn-generation/runs
-runname=$1
 # Run training
-python main.py +experiment=switches.yaml dataset=switches
+python main.py +experiment=switches.yaml dataset=switches dataset.reduced_reactions=False general.name="switches_full" train.batch_size=128
 
