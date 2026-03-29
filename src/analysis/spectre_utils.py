@@ -797,10 +797,10 @@ class SpectreSamplingMetrics(nn.Module):
     def __init__(self, datamodule, compute_emd, metrics_list, is_directed=True):
         super().__init__()
 
+        self.is_directed = is_directed
         self.train_graphs = self.loader_to_nx(datamodule.train_dataloader())
         self.val_graphs = self.loader_to_nx(datamodule.val_dataloader())
         self.test_graphs = self.loader_to_nx(datamodule.test_dataloader())
-        self.is_directed = is_directed
         self.num_graphs_test = len(self.test_graphs)
         self.num_graphs_val = len(self.val_graphs)
         self.compute_emd = compute_emd
