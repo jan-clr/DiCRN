@@ -158,7 +158,7 @@ class CRN:
                     edge_attr.append([S[s, r]])
         edge_index = torch.tensor(edge_index, dtype=torch.long).T.contiguous()
         edge_attr = torch.tensor(edge_attr, dtype=torch.float)
-        return Data(edge_index=edge_index, edge_attr=edge_attr, species_names=metabolites, num_nodes=nr_nodes, num_species=nr_species, num_reactions=nr_reactions, signature=self.to_signature())
+        return Data(edge_index=edge_index, edge_attr=edge_attr, _species_names=metabolites, num_nodes=nr_nodes, num_species=nr_species, num_reactions=nr_reactions, signature=self.to_signature())
 
 
 def main():
