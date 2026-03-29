@@ -219,9 +219,10 @@ class GraphTransformer(nn.Module):
     dims : dict -- contains dimensions for each feature type
     """
     def __init__(self, n_layers: int, input_dims: dict, hidden_mlp_dims: dict, hidden_dims: dict,
-                 output_dims: dict, act_fn_in: nn.ReLU(), act_fn_out: nn.ReLU()):
+                 output_dims: dict, act_fn_in: nn.ReLU(), act_fn_out: nn.ReLU(), directed: bool):
         super().__init__()
         self.n_layers = n_layers
+        self.directed = directed
         self.out_dim_X = output_dims['X']
         self.out_dim_E = output_dims['E']
         self.out_dim_y = output_dims['y']
@@ -265,8 +266,9 @@ class GraphTransformer(nn.Module):
 
         new_E = self.mlp_in_E(E)
         # TODO: i think this is the symmetricization step for undirected graphs, which I don't want
-        #new_E = (new_E + new_E.transpose(1, 2)) / 2
-        after_in = utils.PlaceHolder(X=self.mlp_in_X(X), E=new_E, y=self.mlp_in_y(y)).mask(node_mask)
+        if not self.directed:
+            new_E = (new_E + new_E.transpose(1, 2)) / 2
+        after_in = utils.PlaceHolder(X=self.mlp_in_X(X), E=new_E, y=self.mlp_in_y(y), directed=self.directed).mask(node_mask)
         X, E, y = after_in.X, after_in.E, after_in.y
 
         for layer in self.tf_layers:
@@ -281,6 +283,7 @@ class GraphTransformer(nn.Module):
         y = y + y_to_out
 
         # TODO: i think this is the symmetricization step for undirected graphs, which I don't want
-        #E = 1/2 * (E + torch.transpose(E, 1, 2))
+        if not self.directed:
+            E = 1/2 * (E + torch.transpose(E, 1, 2))
 
-        return utils.PlaceHolder(X=X, E=E, y=y).mask(node_mask)
+        return utils.PlaceHolder(X=X, E=E, y=y, directed=self.directed).mask(node_mask)

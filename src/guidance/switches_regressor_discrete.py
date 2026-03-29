@@ -9,7 +9,6 @@ from src.models.transformer_model import GraphTransformer
 from src.diffusion.noise_schedule import PredefinedNoiseScheduleDiscrete, MarginalUniformTransition
 from src.diffusion import diffusion_utils
 from src.metrics.abstract_metrics import NLL, SumExceptBatchKL, SumExceptBatchMetric
-from src.metrics.train_metrics import TrainLossDiscrete
 import src.utils as utils
 
 
@@ -32,6 +31,7 @@ class SwitchesRegressorDiscrete(pl.LightningModule):
         self.model_dtype = torch.float32
         self.num_classes = dataset_infos.num_classes
         self.T = cfg.model.diffusion_steps
+        self.directed = dataset_infos.is_directed
 
         self.Xdim = input_dims['X']
         self.Edim = input_dims['E']
@@ -73,7 +73,8 @@ class SwitchesRegressorDiscrete(pl.LightningModule):
                                       hidden_dims=cfg.model.hidden_dims,
                                       output_dims=output_dims,
                                       act_fn_in=nn.ReLU(),
-                                      act_fn_out=nn.ReLU())
+                                      act_fn_out=nn.ReLU(),
+                                      directed=self.directed)
 
         self.noise_schedule = PredefinedNoiseScheduleDiscrete(cfg.model.diffusion_noise_schedule,
                                                               timesteps=cfg.model.diffusion_steps)
@@ -89,7 +90,7 @@ class SwitchesRegressorDiscrete(pl.LightningModule):
                                                           y_classes=self.ydim_output)
 
         self.limit_dist = utils.PlaceHolder(X=x_marginals, E=e_marginals,
-                                            y=torch.ones(self.ydim_output) / self.ydim_output)
+                                            y=torch.ones(self.ydim_output) / self.ydim_output, directed=self.directed)
 
         self.save_hyperparameters(ignore=['train_metrics', 'sampling_metrics', 'dataset_infos'])
 
@@ -226,13 +227,13 @@ class SwitchesRegressorDiscrete(pl.LightningModule):
         probX = X @ Qtb.X  # (bs, n, dx_out)
         probE = E @ Qtb.E.unsqueeze(1)  # (bs, n, n, de_out)
 
-        sampled_t = diffusion_utils.sample_discrete_features(probX=probX, probE=probE, node_mask=node_mask)
+        sampled_t = diffusion_utils.sample_discrete_features(probX=probX, probE=probE, node_mask=node_mask, directed=self.directed)
 
         X_t = F.one_hot(sampled_t.X, num_classes=self.Xdim)
         E_t = F.one_hot(sampled_t.E, num_classes=self.Edim)
         assert (X.shape == X_t.shape) and (E.shape == E_t.shape)
 
-        z_t = utils.PlaceHolder(X=X_t, E=E_t, y=y).type_as(X_t).mask(node_mask)
+        z_t = utils.PlaceHolder(X=X_t, E=E_t, y=y, directed=self.directed).type_as(X_t).mask(node_mask)
 
         noisy_data = {'t_int': t_int, 't': t_float, 'beta_t': beta_t, 'alpha_s_bar': alpha_s_bar,
                       'alpha_t_bar': alpha_t_bar, 'X_t': z_t.X, 'E_t': z_t.E, 'y_t': z_t.y, 'node_mask': node_mask}
@@ -274,7 +275,7 @@ class SwitchesRegressorDiscrete(pl.LightningModule):
 
         assert extra_X.shape[-1] == 0, 'The regressor model should not be used with extra features'
         assert extra_E.shape[-1] == 0, 'The regressor model should not be used with extra features'
-        return utils.PlaceHolder(X=extra_X, E=extra_E, y=t)
+        return utils.PlaceHolder(X=extra_X, E=extra_E, y=t, directed=self.directed)
 
     def compute_train_loss(self, pred, target, log: bool):
         """

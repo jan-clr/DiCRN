@@ -181,7 +181,7 @@ def reverse_tensor(x):
     return x[torch.arange(x.size(0) - 1, -1, -1)]
 
 
-def sample_feature_noise(X_size, E_size, y_size, node_mask):
+def sample_feature_noise(X_size, E_size, y_size, node_mask, directed=True):
     """Standard normal noise for all features.
         Output size: X.size(), E.size(), y.size() """
     # TODO: How to change this for the multi-gpu case?
@@ -195,24 +195,24 @@ def sample_feature_noise(X_size, E_size, y_size, node_mask):
     epsy = epsy.type_as(float_mask)
 
     # Only for undirected graphs
+    if not directed:
+        # Get upper triangular part of edge noise, without main diagonal
+        upper_triangular_mask = torch.zeros_like(epsE)
+        indices = torch.triu_indices(row=epsE.size(1), col=epsE.size(2), offset=1)
+        upper_triangular_mask[:, indices[0], indices[1], :] = 1
 
-    # Get upper triangular part of edge noise, without main diagonal
-    #upper_triangular_mask = torch.zeros_like(epsE)
-    #indices = torch.triu_indices(row=epsE.size(1), col=epsE.size(2), offset=1)
-    #upper_triangular_mask[:, indices[0], indices[1], :] = 1
+        epsE = epsE * upper_triangular_mask
+        epsE = (epsE + torch.transpose(epsE, 1, 2))
 
-    #epsE = epsE * upper_triangular_mask
-    #epsE = (epsE + torch.transpose(epsE, 1, 2))
-
-    #assert (epsE == torch.transpose(epsE, 1, 2)).all()
+        assert (epsE == torch.transpose(epsE, 1, 2)).all()
 
     return PlaceHolder(X=epsX, E=epsE, y=epsy).mask(node_mask)
 
 
-def sample_normal(mu_X, mu_E, mu_y, sigma, node_mask):
+def sample_normal(mu_X, mu_E, mu_y, sigma, node_mask, directed=True):
     """Samples from a Normal distribution."""
     # TODO: change for multi-gpu case
-    eps = sample_feature_noise(mu_X.size(), mu_E.size(), mu_y.size(), node_mask).type_as(mu_X)
+    eps = sample_feature_noise(mu_X.size(), mu_E.size(), mu_y.size(), node_mask, directed=directed).type_as(mu_X)
     X = mu_X + sigma * eps.X
     E = mu_E + sigma.unsqueeze(1) * eps.E
     y = mu_y + sigma.squeeze(1) * eps.y
@@ -232,7 +232,7 @@ def check_issues_norm_values(gamma, norm_val1, norm_val2, num_stdevs=8):
             f'1 / norm_value = {1. / max_norm_value}')
 
 
-def sample_discrete_features(probX, probE, node_mask):
+def sample_discrete_features(probX, probE, node_mask, directed):
     ''' Sample features from multinomial distribution with given probabilities (probX, probE, proby)
         :param probX: bs, n, dx_out        node features
         :param probE: bs, n, n, de_out     edge features
@@ -262,8 +262,9 @@ def sample_discrete_features(probX, probE, node_mask):
 
     # Sample E
     E_t = probE.multinomial(1).reshape(bs, n, n)   # (bs, n, n)
-    #E_t = torch.triu(E_t, diagonal=1)
-    #E_t = (E_t + torch.transpose(E_t, 1, 2))
+    if not directed:
+        E_t = torch.triu(E_t, diagonal=1)
+        E_t = (E_t + torch.transpose(E_t, 1, 2))
 
     # Set main diagonal to zero, since no self-loops
     E_t[diag_mask.bool()] = 0
@@ -368,7 +369,7 @@ def posterior_distributions(X, E, y, X_t, E_t, y_t, Qt, Qsb, Qtb):
     return PlaceHolder(X=prob_X, E=prob_E, y=y_t)
 
 
-def sample_discrete_feature_noise(limit_dist, node_mask):
+def sample_discrete_feature_noise(limit_dist, node_mask, directed):
     """ Sample from the limit distribution of the diffusion process"""
     bs, n_max = node_mask.shape
     x_limit = limit_dist.X[None, None, :].expand(bs, n_max, -1)
@@ -387,16 +388,16 @@ def sample_discrete_feature_noise(limit_dist, node_mask):
     U_E = F.one_hot(U_E, num_classes=e_limit.shape[-1]).float()
 
     # This part is only for undirected graphs
+    if not directed:
+        # Get upper triangular part of edge noise, without main diagonal
+        upper_triangular_mask = torch.zeros_like(U_E)
+        indices = torch.triu_indices(row=U_E.size(1), col=U_E.size(2), offset=1)
+        upper_triangular_mask[:, indices[0], indices[1], :] = 1
 
-    # Get upper triangular part of edge noise, without main diagonal
-    #upper_triangular_mask = torch.zeros_like(U_E)
-    #indices = torch.triu_indices(row=U_E.size(1), col=U_E.size(2), offset=1)
-    #upper_triangular_mask[:, indices[0], indices[1], :] = 1
+        U_E = U_E * upper_triangular_mask
+        U_E = (U_E + torch.transpose(U_E, 1, 2))
 
-    #U_E = U_E * upper_triangular_mask
-    #U_E = (U_E + torch.transpose(U_E, 1, 2))
-
-    #assert (U_E == torch.transpose(U_E, 1, 2)).all()
+        assert (U_E == torch.transpose(U_E, 1, 2)).all()
 
     # Set main diagonal to zero, since no self-loops TODO: check if this is working correctly
     diag_mask = torch.eye(U_E.size(1), device=U_E.device, dtype=torch.bool).unsqueeze(0).expand(bs, -1, -1)

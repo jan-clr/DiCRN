@@ -214,10 +214,11 @@ def update_config_with_new_keys(cfg, saved_cfg):
 
 
 class PlaceHolder:
-    def __init__(self, X, E, y):
+    def __init__(self, X, E, y, directed):
         self.X = X
         self.E = E
         self.y = y
+        self.directed = directed
 
     def type_as(self, x: torch.Tensor):
         """ Changes the device and dtype of X, E, y. """
@@ -241,7 +242,8 @@ class PlaceHolder:
             self.X = self.X * x_mask
             self.E = self.E * e_mask1 * e_mask2
             # This assert only makes sense for undirected graphs
-            #assert torch.allclose(self.E, torch.transpose(self.E, 1, 2))
+            if not self.directed:
+                assert torch.allclose(self.E, torch.transpose(self.E, 1, 2))
         return self
 
 

@@ -3,7 +3,7 @@ import pathlib
 
 from torch_geometric.data import Data, Dataset, InMemoryDataset
 import torch
-from torch_geometric.transforms import Compose
+from torch_geometric.transforms import Compose, ToUndirected
 
 from src.datasets import transforms
 from src.datasets.transforms import key_to_transform, compose_transforms
@@ -16,7 +16,7 @@ from src.datasets.abstract_dataset import AbstractDataModule, AbstractDatasetInf
 
 
 class SWITCHESGraph(InMemoryDataset):
-    def __init__(self, root, transform=None, pre_transform=None, over_sampling=False, under_sampling=False, neg_ratio=1.0, split="train", filter_threshold=0.0, resample_threshold=0.0, reduced_reactions=True):
+    def __init__(self, root, transform=None, pre_transform=None, over_sampling=False, under_sampling=False, neg_ratio=1.0, split="train", filter_threshold=0.0, resample_threshold=0.0, reduced_reactions=True, undirected=False):
         self.over_sampling = over_sampling
         self.under_sampling = under_sampling
         self.neg_ratio = neg_ratio
@@ -27,6 +27,7 @@ class SWITCHESGraph(InMemoryDataset):
         self.filter_threshold = filter_threshold
         self.resample_threshold = resample_threshold
         self.reduced_reactions = reduced_reactions
+        self.undirected = undirected
         super(SWITCHESGraph, self).__init__(root=root, transform=transform, pre_transform=self.pre_transform)
         if over_sampling and under_sampling:
             raise ValueError("Both over- and under-sampling at the same time is not supported.")
@@ -53,6 +54,9 @@ class SWITCHESGraph(InMemoryDataset):
 
         if self.reduced_reactions:
             file_name += f"_reduced_reactions"
+
+        if self.undirected:
+            file_name += f"_undirected"
 
         split = ''
         if self.split == 'test':
@@ -96,6 +100,7 @@ class SWITCHESGraph(InMemoryDataset):
             nr_positive_samples = int(len(negative_samples) / self.neg_ratio)
             df = pd.concat([df[df['Propensity'] > self.resample_threshold].sample(n=nr_positive_samples, replace=True), negative_samples])
         loop = tqdm(df.iterrows(), total=len(df), desc='Converting csv into graph data')
+        to_undirected = ToUndirected()
         for i, row in loop:
             signature = row['Signature'].replace('|', '_')[1:-1]
             crn = CRN.from_signature(signature, self.reduced_reactions)
@@ -105,10 +110,11 @@ class SWITCHESGraph(InMemoryDataset):
             data.index = row['Index']
             if self.pre_transform is not None:
                 data = self.pre_transform(data)
+            if self.undirected:
+                data = to_undirected(data)
             data_list.append(data)
 
         self.save(data_list, self.processed_paths[0])
-
 
 
 class SWITCHESGraphDataModule(AbstractDataModule):
@@ -118,6 +124,7 @@ class SWITCHESGraphDataModule(AbstractDataModule):
         self.regressor = regressor
         base_path = pathlib.Path(os.path.realpath(__file__)).parents[2]
         root_path = os.path.join(base_path, self.datadir)
+        self.undirected = cfg.dataset.undirected
 
         transform = None
         if cfg.general.guidance_target is None:
@@ -140,9 +147,9 @@ class SWITCHESGraphDataModule(AbstractDataModule):
             avg_degree_concat = lambda graph: transforms.avg_degree_target(graph, replace=False)
             transform = Compose([transforms.nr_species_target, avg_degree_concat])
 
-        datasets = {'train': SWITCHESGraph(split='train', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path),
-                    'val': SWITCHESGraph(split='val', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path),
-                    'test': SWITCHESGraph(split='test', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path)}
+        datasets = {'train': SWITCHESGraph(split='train', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path, undirected=self.undirected),
+                    'val': SWITCHESGraph(split='val', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path, undirected=self.undirected),
+                    'test': SWITCHESGraph(split='test', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path, undirected=self.undirected)}
         # print(f'Dataset sizes: train {train_len}, val {val_len}, test {test_len}')
 
         super().__init__(cfg, datasets)
@@ -159,7 +166,7 @@ class SWITCHESDatasetInfos(AbstractDatasetInfos):
         self.n_nodes = self.datamodule.node_counts()
         self.node_types = self.datamodule.node_types()               # There are no node types
         self.edge_types = self.datamodule.edge_counts()
-        self.is_directed = True
+        self.is_directed = not self.datamodule.undirected
         super().complete_infos(self.n_nodes, self.node_types)
 
 
