@@ -321,7 +321,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
         for sample in samples:
             crns_nr_species.append((sample[0] == 0).sum())
-            nx_graph = utils.sample_to_nx(sample)
+            nx_graph = utils.sample_to_nx(sample, directed=self.directed)
             avg_degree = sum(dict(nx_graph.degree()).values()) / nx_graph.number_of_nodes()
             crns_avg_degree.append(avg_degree)
 
@@ -504,7 +504,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         for sample in samples:
             atom_types = sample[0]
             nr_species = (atom_types == 0).sum().item()
-            nx_graph = utils.sample_to_nx(sample)
+            nx_graph = utils.sample_to_nx(sample, directed=self.directed)
             graphs.append(nx_graph)
             avg_degree = sum(dict(nx_graph.degree()).values()) / nx_graph.number_of_nodes()
             cond_results['nr_species'].append(nr_species)

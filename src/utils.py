@@ -247,15 +247,15 @@ class PlaceHolder:
         return self
 
 
-def sample_to_nx(sample):
+def sample_to_nx(sample, directed):
     node_types, edge_types = sample
     A = edge_types.cpu().numpy()
-    # adjacency_matrices.append(A)
+    #adjacency_matrices.append(A)
 
     # nx_graph = nx.from_numpy_array(A, create_using=nx.DiGraph)
     # networkx_graphs.append(nx_graph)
 
-    nx_graph = nx.DiGraph()
+    nx_graph = nx.DiGraph() if directed else nx.Graph()
 
     for i in range(len(node_types)):
         if node_types[i] == -1:

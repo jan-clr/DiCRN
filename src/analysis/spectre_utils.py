@@ -829,40 +829,20 @@ class SpectreSamplingMetrics(nn.Module):
             A = edge_types.cpu().numpy()
             adjacency_matrices.append(A)
 
-            if self.is_directed:
-                nx_graph = nx.DiGraph()
+            nx_graph = nx.DiGraph() if self.is_directed else nx.Graph()
 
-                for i in range(len(node_types)):
-                    if node_types[i] == -1:
-                        continue
-                    nx_graph.add_node(i, number=i, symbol=node_types[i], color_val=node_types[i], type=node_types[i])
+            for i in range(len(node_types)):
+                if node_types[i] == -1:
+                    continue
+                nx_graph.add_node(i, number=i, symbol=node_types[i], color_val=node_types[i], type=node_types[i])
 
-                rows, cols = np.where(A >= 1)
-                edges = zip(rows.tolist(), cols.tolist())
-                for edge in edges:
-                    edge_type = A[edge[0]][edge[1]]
-                    nx_graph.add_edge(edge[0], edge[1], color=float(edge_type), weight=3 * edge_type, stoichiometry=edge_type)
+            rows, cols = np.where(A >= 1)
+            edges = zip(rows.tolist(), cols.tolist())
+            for edge in edges:
+                edge_type = A[edge[0]][edge[1]]
+                nx_graph.add_edge(edge[0], edge[1], color=float(edge_type), weight=3 * edge_type, stoichiometry=edge_type)
 
-                networkx_graphs.append(nx_graph)
-            else:
-                nx_graph = nx.from_numpy_array(A, create_using=nx.DiGraph)
-                networkx_graphs.append(nx_graph)
-
-        np.savez('generated_adjs.npz', *adjacency_matrices)
-
-        if 'degree' in self.metrics_list:
-            if local_rank == 0:
-                print("Computing degree stats..")
-            degree = degree_stats(reference_graphs, networkx_graphs, is_parallel=True,
-                                  compute_emd=self.compute_emd)
-            if wandb.run:
-                wandb.run.summary['degree'] = degree
-
-        # val_eigvals = [graph["eigval"][1:self.k + 1].cpu().detach().numpy() for graph in self.val]
-        # train_eigvals = [graph["eigval"][1:self.k + 1].cpu().detach().numpy() for graph in self.train]
-
-        # eigval_stats(eig_ref_list, eig_pred_list, max_eig=20, is_parallel=True, compute_emd=False)
-        # spectral_filter_stats(eigvec_ref_list, eigval_ref_list, eigvec_pred_list, eigval_pred_list, is_parallel=False,
+            networkx_graphs.append(nx_graph)
         #                       compute_emd=False)          # This is the one called wavelet
         to_log = {}
 

@@ -222,13 +222,13 @@ class NonMolecularVisualization:
 
 
 class CRNVisualization(NonMolecularVisualization):
-    def to_networkx(self, node_list, adjacency_matrix):
+    def to_networkx(self, node_list, adjacency_matrix, directed):
         """
         Convert graphs to networkx graphs
         node_list: the nodes of a batch of nodes (bs x n)
         adjacency_matrix: the adjacency_matrix of the molecule (bs x n x n)
         """
-        graph = nx.DiGraph()
+        graph = nx.DiGraph() if directed else nx.Graph()
 
         for i in range(len(node_list)):
             if node_list[i] == -1:
@@ -261,7 +261,7 @@ class CRNVisualization(NonMolecularVisualization):
         plt.savefig(path)
         plt.close("all")
 
-    def visualize(self, path: str, graphs: list, num_graphs_to_visualize: int, log='graph'):
+    def visualize(self, path: str, graphs: list, num_graphs_to_visualize: int, directed, log='graph'):
         # define path to save figures
         if not os.path.exists(path):
             os.makedirs(path)
@@ -269,7 +269,7 @@ class CRNVisualization(NonMolecularVisualization):
         # visualize the final molecules
         for i in range(num_graphs_to_visualize):
             file_path = os.path.join(path, 'graph_{}.png'.format(i))
-            graph = self.to_networkx(graphs[i][0].numpy(), graphs[i][1].numpy())
+            graph = self.to_networkx(graphs[i][0].numpy(), graphs[i][1].numpy(), directed=directed)
             self.visualize_non_molecule(graph=graph, pos=None, path=file_path)
             im = plt.imread(file_path)
             if wandb.run and log is not None:
