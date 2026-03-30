@@ -99,11 +99,13 @@ class AbstractDatasetInfos:
         self.num_classes = len(node_types)
         self.max_n_nodes = len(n_nodes) - 1
         self.nodes_dist = DistributionNodes(n_nodes)
+        if not hasattr(self, 'is_directed'):
+            self.is_directed = True
 
     def compute_input_output_dims(self, datamodule, extra_features, domain_features):
         example_batch = next(iter(datamodule.train_dataloader()))
         ex_dense, node_mask = utils.to_dense(example_batch.x, example_batch.edge_index, example_batch.edge_attr,
-                                             example_batch.batch)
+                                             example_batch.batch, directed=self.is_directed)
         example_data = {'X_t': ex_dense.X, 'E_t': ex_dense.E, 'y_t': example_batch['y'], 'node_mask': node_mask}
 
         self.input_dims = {'X': example_batch['x'].size(1),

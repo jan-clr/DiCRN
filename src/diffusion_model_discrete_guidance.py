@@ -81,7 +81,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
         if cfg.model.transition == 'uniform':
             self.transition_model = DiscreteUniformTransition(x_classes=self.Xdim_output, e_classes=self.Edim_output,
-                                                              y_classes=self.ydim_output)
+                                                              y_classes=self.ydim_output,
+                                        directed=self.directed)
             x_limit = torch.ones(self.Xdim_output) / self.Xdim_output
             e_limit = torch.ones(self.Edim_output) / self.Edim_output
             y_limit = torch.ones(self.ydim_output) / self.ydim_output
@@ -95,7 +96,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             e_marginals = edge_types / torch.sum(edge_types)
             print(f"Marginal distribution of the classes: {x_marginals} for nodes, {e_marginals} for edges")
             self.transition_model = MarginalUniformTransition(x_marginals=x_marginals, e_marginals=e_marginals,
-                                                              y_classes=self.ydim_output)
+                                                              y_classes=self.ydim_output,
+                                                              directed=self.directed)
             self.limit_dist = utils.PlaceHolder(X=x_marginals, E=e_marginals,
                                                 y=torch.ones(self.ydim_output) / self.ydim_output, directed=self.directed)
 

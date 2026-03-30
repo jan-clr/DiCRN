@@ -13,7 +13,7 @@ class DummyExtraFeatures:
         empty_x = X.new_zeros((*X.shape[:-1], 0))
         empty_e = E.new_zeros((*E.shape[:-1], 0))
         empty_y = y.new_zeros((y.shape[0], 0))
-        return utils.PlaceHolder(X=empty_x, E=empty_e, y=empty_y)
+        return utils.PlaceHolder(X=empty_x, E=empty_e, y=empty_y, directed=False)
 
 
 class ExtraFeatures:
@@ -21,6 +21,7 @@ class ExtraFeatures:
         self.max_n_nodes = dataset_info.max_n_nodes
         self.ncycles = NodeCycleFeatures(dataset_info.is_directed)
         self.features_type = extra_features_type
+        self.directed = dataset_info.is_directed
         if extra_features_type in ['eigenvalues', 'all']:
             self.eigenfeatures = EigenFeatures(mode=extra_features_type)
 
@@ -31,7 +32,7 @@ class ExtraFeatures:
         if self.features_type == 'cycles':
             E = noisy_data['E_t']
             extra_edge_attr = torch.zeros((*E.shape[:-1], 0)).type_as(E)
-            return utils.PlaceHolder(X=x_cycles, E=extra_edge_attr, y=torch.hstack((n, y_cycles)))
+            return utils.PlaceHolder(X=x_cycles, E=extra_edge_attr, y=torch.hstack((n, y_cycles)), directed=self.directed)
 
         elif self.features_type == 'eigenvalues':
             eigenfeatures = self.eigenfeatures(noisy_data)
@@ -39,7 +40,8 @@ class ExtraFeatures:
             extra_edge_attr = torch.zeros((*E.shape[:-1], 0)).type_as(E)
             n_components, batched_eigenvalues = eigenfeatures   # (bs, 1), (bs, 10)
             return utils.PlaceHolder(X=x_cycles, E=extra_edge_attr, y=torch.hstack((n, y_cycles, n_components,
-                                                                                    batched_eigenvalues)))
+                                                                                    batched_eigenvalues)), 
+                                    directed=self.directed)
         elif self.features_type == 'all':
             eigenfeatures = self.eigenfeatures(noisy_data)
             E = noisy_data['E_t']
@@ -49,7 +51,8 @@ class ExtraFeatures:
 
             return utils.PlaceHolder(X=torch.cat((x_cycles, nonlcc_indicator, k_lowest_eigvec), dim=-1),
                                      E=extra_edge_attr,
-                                     y=torch.hstack((n, y_cycles, n_components, batched_eigenvalues)))
+                                     y=torch.hstack((n, y_cycles, n_components, batched_eigenvalues)),
+                                     directed=self.directed)
         else:
             raise ValueError(f"Features type {self.features_type} not implemented")
 
