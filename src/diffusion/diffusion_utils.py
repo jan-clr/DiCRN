@@ -206,7 +206,7 @@ def sample_feature_noise(X_size, E_size, y_size, node_mask, directed=True):
 
         assert (epsE == torch.transpose(epsE, 1, 2)).all()
 
-    return PlaceHolder(X=epsX, E=epsE, y=epsy).mask(node_mask)
+    return PlaceHolder(X=epsX, E=epsE, y=epsy, directed=directed).mask(node_mask)
 
 
 def sample_normal(mu_X, mu_E, mu_y, sigma, node_mask, directed=True):
@@ -216,7 +216,7 @@ def sample_normal(mu_X, mu_E, mu_y, sigma, node_mask, directed=True):
     X = mu_X + sigma * eps.X
     E = mu_E + sigma.unsqueeze(1) * eps.E
     y = mu_y + sigma.squeeze(1) * eps.y
-    return PlaceHolder(X=X, E=E, y=y)
+    return PlaceHolder(X=X, E=E, y=y, directed=directed)
 
 
 def check_issues_norm_values(gamma, norm_val1, norm_val2, num_stdevs=8):
@@ -269,7 +269,7 @@ def sample_discrete_features(probX, probE, node_mask, directed):
     # Set main diagonal to zero, since no self-loops
     E_t[diag_mask.bool()] = 0
 
-    return PlaceHolder(X=X_t, E=E_t, y=torch.zeros(bs, 0).type_as(X_t))
+    return PlaceHolder(X=X_t, E=E_t, y=torch.zeros(bs, 0).type_as(X_t), directed=directed)
 
 
 def compute_posterior_distribution(M, M_t, Qt_M, Qsb_M, Qtb_M):
@@ -362,11 +362,11 @@ def mask_distributions(true_X, true_E, pred_X, pred_E, node_mask):
     return true_X, true_E, pred_X, pred_E
 
 
-def posterior_distributions(X, E, y, X_t, E_t, y_t, Qt, Qsb, Qtb):
+def posterior_distributions(X, E, y, X_t, E_t, y_t, Qt, Qsb, Qtb, directed):
     prob_X = compute_posterior_distribution(M=X, M_t=X_t, Qt_M=Qt.X, Qsb_M=Qsb.X, Qtb_M=Qtb.X)   # (bs, n, dx)
     prob_E = compute_posterior_distribution(M=E, M_t=E_t, Qt_M=Qt.E, Qsb_M=Qsb.E, Qtb_M=Qtb.E)   # (bs, n * n, de)
 
-    return PlaceHolder(X=prob_X, E=prob_E, y=y_t)
+    return PlaceHolder(X=prob_X, E=prob_E, y=y_t, directed=directed)
 
 
 def sample_discrete_feature_noise(limit_dist, node_mask, directed):
@@ -403,6 +403,6 @@ def sample_discrete_feature_noise(limit_dist, node_mask, directed):
     diag_mask = torch.eye(U_E.size(1), device=U_E.device, dtype=torch.bool).unsqueeze(0).expand(bs, -1, -1)
     U_E[diag_mask] = 0
 
-    return PlaceHolder(X=U_X, E=U_E, y=U_y).mask(node_mask)
+    return PlaceHolder(X=U_X, E=U_E, y=U_y, directed=directed).mask(node_mask)
 
 
