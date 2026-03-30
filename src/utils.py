@@ -136,7 +136,7 @@ class EMA(pl.Callback):
         self.ema_state_dict = checkpoint["ema_state_dict"]
 
 
-def normalize(X, E, y, norm_values, norm_biases, node_mask):
+def normalize(X, E, y, norm_values, norm_biases, node_mask, directed):
     X = (X - norm_biases[0]) / norm_values[0]
     E = (E - norm_biases[1]) / norm_values[1]
     y = (y - norm_biases[2]) / norm_values[2]
@@ -144,10 +144,10 @@ def normalize(X, E, y, norm_values, norm_biases, node_mask):
     diag = torch.eye(E.shape[1], dtype=torch.bool).unsqueeze(0).expand(E.shape[0], -1, -1)
     E[diag] = 0
 
-    return PlaceHolder(X=X, E=E, y=y).mask(node_mask)
+    return PlaceHolder(X=X, E=E, y=y, directed=directed).mask(node_mask)
 
 
-def unnormalize(X, E, y, norm_values, norm_biases, node_mask, collapse=False):
+def unnormalize(X, E, y, norm_values, norm_biases, node_mask, directed, collapse=False):
     """
     X : node features
     E : edge features
@@ -160,10 +160,10 @@ def unnormalize(X, E, y, norm_values, norm_biases, node_mask, collapse=False):
     E = (E * norm_values[1] + norm_biases[1])
     y = y * norm_values[2] + norm_biases[2]
 
-    return PlaceHolder(X=X, E=E, y=y).mask(node_mask, collapse)
+    return PlaceHolder(X=X, E=E, y=y, directed=directed).mask(node_mask, collapse)
 
 
-def to_dense(x, edge_index, edge_attr, batch):
+def to_dense(x, edge_index, edge_attr, batch, directed):
     X, node_mask = to_dense_batch(x=x, batch=batch)
     # node_mask = node_mask.float()
     edge_index, edge_attr = torch_geometric.utils.remove_self_loops(edge_index, edge_attr)
@@ -172,7 +172,7 @@ def to_dense(x, edge_index, edge_attr, batch):
     E = to_dense_adj(edge_index=edge_index, batch=batch, edge_attr=edge_attr, max_num_nodes=max_num_nodes)
     E = encode_no_edge(E)
 
-    return PlaceHolder(X=X, E=E, y=None), node_mask
+    return PlaceHolder(X=X, E=E, y=None, directed=directed), node_mask
 
 
 def encode_no_edge(E):
