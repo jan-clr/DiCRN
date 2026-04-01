@@ -125,6 +125,7 @@ class SWITCHESGraphDataModule(AbstractDataModule):
         base_path = pathlib.Path(os.path.realpath(__file__)).parents[2]
         root_path = os.path.join(base_path, self.datadir)
         self.undirected = cfg.dataset.undirected
+        self.reduced_reactions = cfg.dataset.reduced_reactions
 
         transform = None
         if cfg.general.guidance_target is None:
@@ -147,9 +148,9 @@ class SWITCHESGraphDataModule(AbstractDataModule):
             avg_degree_concat = lambda graph: transforms.avg_degree_target(graph, replace=False)
             transform = Compose([transforms.nr_species_target, avg_degree_concat])
 
-        datasets = {'train': SWITCHESGraph(split='train', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path, undirected=self.undirected),
-                    'val': SWITCHESGraph(split='val', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path, undirected=self.undirected),
-                    'test': SWITCHESGraph(split='test', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path, undirected=self.undirected)}
+        datasets = {'train': SWITCHESGraph(split='train', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path, undirected=self.undirected, reduced_reactions=self.reduced_reactions),
+                    'val': SWITCHESGraph(split='val', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path, undirected=self.undirected, reduced_reactions=self.reduced_reactions),
+                    'test': SWITCHESGraph(split='test', pre_transform=['type_one_hot', 'edge_one_hot'], transform=transform, root=root_path, undirected=self.undirected, reduced_reactions=self.reduced_reactions)}
         # print(f'Dataset sizes: train {train_len}, val {val_len}, test {test_len}')
 
         super().__init__(cfg, datasets)
