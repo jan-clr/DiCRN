@@ -13,6 +13,7 @@ general:
     # THIS SHOULD BE THE SAME AS THE REGRESSION MODEL THAT IS LOADED
     guidance_target: 'avg_degree'            # 'mu', 'homo', 'both', 'no-target'
     target_value: 2.0
+    num_nodes: null
     trained_regressor_path: ${oc.env:WORK}/dicrn/regressors/regressor-avg_degree-2026-03-23-17-45-42/checkpoints/regressor/last.ckpt
     test_only: ${oc.env:WORK}/dicrn/2026-01-27/16-21-11-switches_reduced_reactions/checkpoints/switches_reduced_reactions/last.ckpt
 train:

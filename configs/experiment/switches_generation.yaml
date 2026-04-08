@@ -15,6 +15,7 @@ general:
     samples_to_generate: 30
     samples_to_save: 9
     chains_to_save: 1
+    num_nodes: 13
     final_model_samples_to_generate: 1000
     final_model_samples_to_save: 1000
     final_model_chains_to_save: 20

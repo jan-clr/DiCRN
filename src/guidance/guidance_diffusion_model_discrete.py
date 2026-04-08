@@ -136,7 +136,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         start = time.time()
 
         ident = 0
-        samples = self.sample_batch(batch_id=ident, batch_size=100, num_nodes=None,
+        samples = self.sample_batch(batch_id=ident, batch_size=100, num_nodes=self.cfg.general.num_nodes,
                                     save_final=100,
                                     keep_chain=1,
                                     number_chain_steps=self.number_chain_steps,

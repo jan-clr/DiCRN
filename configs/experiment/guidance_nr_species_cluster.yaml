@@ -13,6 +13,7 @@ general:
     # THIS SHOULD BE THE SAME AS THE REGRESSION MODEL THAT IS LOADED
     guidance_target: 'nr_species'            # 'mu', 'homo', 'both', 'no-target'
     target_value: 9.0
+    num_nodes: 13
     trained_regressor_path: ${oc.env:WORK}/dicrn/regressors/regressor-nr_species-2026-04-02-11-29-38/checkpoints/regressor/last.ckpt
     #test_only: ${oc.env:WORK}/dicrn/2025-12-08/17-09-07-switches_no_extra_features/checkpoints/switches_no_extra_features/last.ckpt
     #test_only: ${oc.env:WORK}/dicrn/2026-01-27/16-21-11-switches_reduced_reactions/checkpoints/switches_reduced_reactions/last.ckpt

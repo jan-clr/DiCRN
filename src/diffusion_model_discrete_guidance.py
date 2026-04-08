@@ -308,7 +308,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             to_generate = min(samples_left_to_generate, bs)
             to_save = min(samples_left_to_save, bs)
             chains_save = min(chains_left_to_save, bs)
-            samples.extend(self.sample_batch(id, to_generate, num_nodes=None, save_final=to_save,
+            samples.extend(self.sample_batch(id, to_generate, num_nodes=self.cfg.general.num_nodes, save_final=to_save,
                                              keep_chain=chains_save, number_chain_steps=self.number_chain_steps))
             id += to_generate
             samples_left_to_save -= to_save
