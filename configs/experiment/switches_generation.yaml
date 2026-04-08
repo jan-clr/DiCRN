@@ -1,10 +1,15 @@
 # @package _global_
 general:
-    name : 'switches_generation_uncond'
+    name : 'switches_reduced_generation_uncond_1000'
     gpus : 1
     wandb: 'disabled'
     resume: null            # If resume, path to ckpt file from outputs directory in main directory
-    test_only: ${oc.env:WORK}/dicrn/2026-01-27/16-21-11-switches_reduced_reactions/checkpoints/switches_reduced_reactions/last.ckpt
+    #test_only: ${oc.env:WORK}/dicrn/2026-01-27/16-21-11-switches_reduced_reactions/checkpoints/switches_reduced_reactions/last.ckpt
+    # model trained on full reactions
+    #test_only: ${oc.env:WORK}/dicrn/base/switches_full-2026-03-30-15-05-23/checkpoints/switches_full/last.ckpt
+    test_only: ${oc.env:WORK}/dicrn/base/switches_reduced-2026-04-01-16-39-41/checkpoints/switches_reduced/last.ckpt
+    # model trained on undirected reactions
+    #test_only: ${oc.env:WORK}/dicrn/base/switches_undirected_finished/checkpoints/switches_undirected/last.ckpt
     check_val_every_n_epochs: 2
     sample_every_val: 4
     samples_to_generate: 30

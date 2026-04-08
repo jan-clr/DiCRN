@@ -21,6 +21,7 @@ warnings.filterwarnings("ignore", category=PossibleUserWarning)
 
 @hydra.main(version_base='1.1', config_path='../../configs', config_name='config')
 def main(cfg: DictConfig):
+    print(cfg)
     dataset_config = cfg["dataset"]
     print(dataset_config)
     assert dataset_config["name"] == 'switches'

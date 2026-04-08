@@ -274,3 +274,25 @@ class CRNVisualization(NonMolecularVisualization):
             im = plt.imread(file_path)
             if wandb.run and log is not None:
                 wandb.log({log: [wandb.Image(im, caption=file_path)]})
+
+
+    def visualize_chain(self, path, nodes_list, adjacency_matrix, directed, trainer=None):
+        # convert graphs to networkx
+        graphs = [self.to_networkx(nodes_list[i], adjacency_matrix[i], directed=directed) for i in range(nodes_list.shape[0])]
+        # find the coordinates of atoms in the final molecule
+        final_graph = graphs[-1]
+        final_pos = nx.spring_layout(final_graph, seed=0)
+
+        # draw gif
+        save_paths = []
+        num_frams = nodes_list.shape[0]
+
+        for frame in range(num_frams):
+            file_name = os.path.join(path, 'fram_{}.png'.format(frame))
+            self.visualize_non_molecule(graph=graphs[frame], pos=final_pos, path=file_name)
+            save_paths.append(file_name)
+
+        imgs = [imageio.imread(fn) for fn in save_paths]
+        gif_path = os.path.join(os.path.dirname(path), '{}.gif'.format(path.split('/')[-1]))
+        imgs.extend([imgs[-1]] * 10)
+        imageio.mimsave(gif_path, imgs, subrectangles=True, duration=20)

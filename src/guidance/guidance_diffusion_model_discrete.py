@@ -301,7 +301,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                     os.makedirs(result_path)
                     _ = self.visualization_tools.visualize_chain(result_path,
                                                                  chain_X[:, i, :].numpy(),
-                                                                 chain_E[:, i, :].numpy())
+                                                                 chain_E[:, i, :].numpy(),
+                                                                 directed=self.directed)
                 print('\r{}/{} complete'.format(i+1, num_molecules), end='', flush=True)
             print('\nVisualizing chains Ends!')
 
@@ -309,7 +310,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             current_path = os.getcwd()
             result_path = os.path.join(current_path,
                                        f'graphs/{self.name}/epoch{self.current_epoch}_b{batch_id}/')
-            self.visualization_tools.visualize(result_path, molecule_list, save_final)
+            self.visualization_tools.visualize(result_path, molecule_list, save_final, directed=self.directed)
 
         return molecule_list
 

@@ -12,5 +12,4 @@ conda activate digress
 # Constants/Arguments
 runname=$1
 # Run training
-python generate_samples.py +experiment=switches_generation.yaml dataset=switches
-
+python generate_samples.py +experiment=switches_generation.yaml dataset=switches dataset.reduced_reactions=True dataset.undirected=False
